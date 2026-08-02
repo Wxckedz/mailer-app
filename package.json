@@ -1,0 +1,29 @@
+{
+  "name": "mailer-telegram-app",
+  "version": "2.0.0",
+  "description": "Best Mailer with Telegram Integration - Optimized for 1GB RAM VPS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --max-old-space-size=512 --expose-gc server.js",
+    "dev": "node --max-old-space-size=512 --expose-gc server.js",
+    "pm2": "pm2 start ecosystem.config.js",
+    "pm2:restart": "pm2 restart mailer-app",
+    "pm2:stop": "pm2 stop mailer-app",
+    "pm2:logs": "pm2 logs mailer-app",
+    "pm2:monit": "pm2 monit"
+  },
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-fileupload": "^1.5.2",
+    "fs-extra": "^11.4.0",
+    "imap": "^0.8.19",
+    "mailparser": "^3.9.14",
+    "node-schedule": "^2.1.1",
+    "node-telegram-bot-api": "^0.64.0",
+    "nodemailer": "^6.9.7",
+    "socks-proxy-agent": "^10.1.0"
+  }
+}

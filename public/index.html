@@ -1,0 +1,2621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wxcked Mailer v2 - Email & Telegram Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif; min-height: 100vh;
+      background: #07070d; color: #e8e8f0; overflow-x: hidden;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+    
+    .bg-glow { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; overflow: hidden; pointer-events: none; }
+    .bg-glow .glow {
+      position: absolute; border-radius: 50%; filter: blur(120px); opacity: 0.12;
+      animation: glowDrift 25s ease-in-out infinite;
+    }
+    .bg-glow .glow:nth-child(1) { width: 700px; height: 700px; background: #6366f1; top: -15%; left: -10%; animation-delay: 0s; }
+    .bg-glow .glow:nth-child(2) { width: 500px; height: 500px; background: #ec4899; bottom: -10%; right: -10%; animation-delay: -8s; }
+    .bg-glow .glow:nth-child(3) { width: 400px; height: 400px; background: #06b6d4; top: 40%; left: 60%; animation-delay: -16s; }
+    @keyframes glowDrift {
+      0%,100% { transform: translate(0,0) scale(1); }
+      25% { transform: translate(120px,-60px) scale(1.15); }
+      50% { transform: translate(-60px,120px) scale(0.85); }
+      75% { transform: translate(90px,60px) scale(1.1); }
+    }
+    .grid-lines {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 80px 80px; z-index: 1; pointer-events: none;
+    }
+    
+    .app { position: relative; z-index: 2; max-width: 1440px; margin: 0 auto; padding: 16px 20px; }
+
+    /* Login Page */
+    .login-page {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center; z-index: 1000;
+      background: #07070d;
+    }
+    .login-page.hidden { display: none; }
+    .login-card {
+      width: 100%; max-width: 400px; padding: 40px 36px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; backdrop-filter: blur(20px);
+      animation: fadeIn 0.4s ease;
+    }
+    .login-card .login-logo {
+      text-align: center; margin-bottom: 30px;
+    }
+    .login-card .login-logo i {
+      font-size: 48px; background: linear-gradient(135deg, #f43f5e, #6366f1);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .login-card .login-logo h1 {
+      font-size: 24px; font-weight: 800; margin-top: 12px;
+      background: linear-gradient(135deg, #f43f5e, #6366f1);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .login-card .login-logo p { font-size: 12px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+    .login-card .form-group { margin-bottom: 16px; }
+    .login-card .form-group label {
+      display: block; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.5);
+      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .login-card .form-group input {
+      width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      color: #e8e8f0; font-family: 'Inter', sans-serif; font-size: 14px;
+      transition: all 0.2s ease; outline: none;
+    }
+    .login-card .form-group input:focus {
+      border-color: rgba(99,102,241,0.4); box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
+    .login-card .btn-login {
+      width: 100%; padding: 13px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease; margin-top: 8px;
+    }
+    .login-card .btn-login:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.3); }
+    .login-card .login-error {
+      display: none; padding: 10px 14px; background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.2); border-radius: 8px;
+      color: #f87171; font-size: 12px; margin-top: 12px;
+    }
+    .login-card .login-error.show { display: block; }
+    .login-card .login-hint {
+      text-align: center; font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 16px;
+    }
+
+    /* Layout */
+    .layout { display: flex; gap: 20px; min-height: calc(100vh - 100px); }
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 16px; backdrop-filter: blur(20px);
+      position: sticky; top: 16px; height: fit-content; max-height: calc(100vh - 32px);
+      overflow-y: auto;
+    }
+    .sidebar .logo {
+      display: flex; align-items: center; gap: 10px; padding: 8px 10px 16px;
+      font-size: 20px; font-weight: 800;
+      background: linear-gradient(135deg, #f43f5e, #6366f1);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+      border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 12px;
+    }
+    .sidebar .logo i { font-size: 22px; -webkit-text-fill-color: transparent; background: linear-gradient(135deg, #f43f5e, #6366f1); -webkit-background-clip: text; background-clip: text; }
+    .sidebar .logo span { font-size: 10px; font-weight: 400; color: rgba(255,255,255,0.3); display: block; -webkit-text-fill-color: rgba(255,255,255,0.3); margin-top: -2px; }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-nav button {
+      display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+      border: none; background: transparent; border-radius: 10px;
+      color: rgba(255,255,255,0.45); font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      transition: all 0.2s ease; text-align: left;
+    }
+    .sidebar-nav button:hover { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.7); }
+    .sidebar-nav button.active { background: rgba(99,102,241,0.12); color: #818cf8; }
+    .sidebar-nav button i { width: 18px; font-size: 15px; text-align: center; }
+    .sidebar-nav .divider { height: 1px; background: rgba(255,255,255,0.06); margin: 6px 10px; }
+    .sidebar-nav .badge-count {
+      margin-left: auto; background: rgba(255,255,255,0.08); padding: 2px 8px;
+      border-radius: 20px; font-size: 10px; color: rgba(255,255,255,0.4);
+    }
+    .sidebar .user-info {
+      padding: 10px 12px; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .sidebar .user-info .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; color: #fff;
+    }
+    .sidebar .user-info .u-name { font-size: 12px; font-weight: 600; }
+    .sidebar .user-info .u-role { font-size: 10px; color: rgba(255,255,255,0.35); }
+    .sidebar .logout-btn {
+      width: 100%; margin-top: 8px; padding: 8px; border: none; border-radius: 8px;
+      background: rgba(239,68,68,0.1); color: #f87171; font-family: 'Inter', sans-serif;
+      font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+    }
+    .sidebar .logout-btn:hover { background: rgba(239,68,68,0.2); }
+
+    .main-content { flex: 1; min-width: 0; }
+
+    /* Header Status Bar */
+    .top-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 14px;
+      margin-bottom: 20px; backdrop-filter: blur(10px); flex-wrap: wrap; gap: 8px;
+    }
+    .top-bar .status-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+    .top-bar .pill {
+      display: flex; align-items: center; gap: 5px; padding: 5px 12px;
+      background: rgba(255,255,255,0.04); border-radius: 50px;
+      font-size: 11px; color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.05);
+    }
+    .top-bar .pill .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .top-bar .pill .dot.on { background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.4); }
+    .top-bar .pill .dot.off { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+    .top-bar .pill .dot.loading { background: #f59e0b; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.2; } }
+    .top-bar .page-title { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); }
+    .top-bar .page-title i { margin-right: 8px; color: #818cf8; }
+
+    /* Page Sections */
+    .page { display: none; }
+    .page.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Glass Card */
+    .card {
+      background: rgba(255,255,255,0.03); backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 16px;
+      padding: 20px; margin-bottom: 16px; transition: all 0.3s ease;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.12); }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .card-header .card-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
+    }
+    .card-header .card-icon.purple { background: rgba(99,102,241,0.15); color: #818cf8; }
+    .card-header .card-icon.pink { background: rgba(244,63,94,0.15); color: #f43f5e; }
+    .card-header .card-icon.cyan { background: rgba(6,182,212,0.15); color: #22d3ee; }
+    .card-header .card-icon.amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .card-header .card-icon.green { background: rgba(34,197,94,0.15); color: #4ade80; }
+    .card-header .card-icon.blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .card-header .card-icon.rose { background: rgba(244,63,94,0.15); color: #fb7185; }
+    .card-header h3 { font-size: 15px; font-weight: 600; }
+    .card-header p { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+
+    /* Forms */
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.5); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: 9px 13px; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      color: #e8e8f0; font-family: 'Inter', sans-serif; font-size: 13px;
+      transition: all 0.2s ease; outline: none;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+      border-color: rgba(99,102,241,0.4); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: rgba(255,255,255,0.07);
+    }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(255,255,255,0.15); }
+    select option { background: #1a1a2e; color: #e8e8f0; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .form-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 9px 18px; border: none; border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 8px; }
+    .btn-xs { padding: 3px 8px; font-size: 10px; border-radius: 6px; }
+    .btn-primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.3); }
+    .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+    .btn-danger:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(239,68,68,0.3); }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
+    .btn-success:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,197,94,0.3); }
+    .btn-ghost { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.08); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+    .btn-telegram { background: linear-gradient(135deg, #229ed9, #1d8fc7); color: #fff; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-full { width: 100%; justify-content: center; }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 3px; background: rgba(255,255,255,0.03);
+      border-radius: 10px; padding: 3px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .tabs .tab {
+      flex: 1; padding: 7px 14px; border: none; background: transparent;
+      color: rgba(255,255,255,0.4); font-family: 'Inter', sans-serif;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      border-radius: 7px; transition: all 0.2s ease; min-width: fit-content;
+      white-space: nowrap;
+    }
+    .tabs .tab.active { background: rgba(255,255,255,0.08); color: #e8e8f0; }
+    .tabs .tab:hover:not(.active) { color: rgba(255,255,255,0.7); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.25s ease; }
+
+    /* Data Lists */
+    .data-list { display: flex; flex-direction: column; gap: 6px; }
+    .data-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+      gap: 8px; flex-wrap: wrap; transition: all 0.2s;
+    }
+    .data-item:hover { background: rgba(255,255,255,0.05); }
+    .data-item .info { flex: 1; min-width: 0; }
+    .data-item .info .name { font-size: 13px; font-weight: 600; }
+    .data-item .info .detail { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 2px; }
+    .data-item .actions { display: flex; gap: 4px; }
+    .empty-state { text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.2); }
+    .empty-state i { font-size: 36px; margin-bottom: 10px; display: block; opacity: 0.5; }
+    .empty-state p { font-size: 13px; }
+
+    /* Toasts */
+    .toast-container { position: fixed; top: 14px; right: 14px; z-index: 9999; display: flex; flex-direction: column; gap: 6px; }
+    .toast {
+      padding: 12px 16px; border-radius: 10px; background: rgba(20,20,35,0.95);
+      backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);
+      color: #e8e8f0; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      min-width: 280px; max-width: 380px; animation: toastIn 0.25s ease;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .toast.success { border-left: 3px solid #22c55e; }
+    .toast.error { border-left: 3px solid #ef4444; }
+    .toast.info { border-left: 3px solid #6366f1; }
+    .toast .t-icon { font-size: 16px; }
+    .toast.success .t-icon { color: #22c55e; }
+    .toast.error .t-icon { color: #ef4444; }
+    .toast.info .t-icon { color: #818cf8; }
+    .toast .t-close { margin-left: auto; background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 14px; padding: 2px; }
+    @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes toastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+
+    /* Response Box */
+    .resp-box {
+      margin-top: 10px; padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border-radius: 10px; border: 1px solid rgba(255,255,255,0.06);
+      font-size: 12px; color: rgba(255,255,255,0.6); display: none; word-break: break-word;
+      max-height: 250px; overflow-y: auto;
+    }
+    .resp-box.show { display: block; }
+    .resp-box.good { border-color: rgba(34,197,94,0.2); background: rgba(34,197,94,0.04); }
+    .resp-box.bad { border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.04); }
+    .resp-box .rl { font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .resp-box.good .rl { color: #22c55e; }
+    .resp-box.bad .rl { color: #ef4444; }
+    .resp-box pre { margin: 0; font-family: 'Inter', sans-serif; font-size: 11px; white-space: pre-wrap; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: #111122; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px; padding: 22px; width: 100%; max-width: 620px;
+      max-height: 85vh; overflow-y: auto; animation: fadeIn 0.25s ease;
+    }
+    .modal-lg { max-width: 800px; }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .modal-header h3 { font-size: 16px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 22px; padding: 4px; line-height: 1; }
+
+    /* Spinner */
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.15); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Badge / Tags */
+    .badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 50px; font-size: 9px; font-weight: 600; }
+    .badge-green { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .badge-red { background: rgba(239,68,68,0.12); color: #f87171; }
+    .badge-amber { background: rgba(245,158,11,0.12); color: #fbbf24; }
+    .badge-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
+    .badge-purple { background: rgba(99,102,241,0.12); color: #818cf8; }
+    .tag { display: inline-flex; align-items: center; gap: 3px; padding: 3px 8px; background: rgba(255,255,255,0.05); border-radius: 6px; font-size: 10px; color: rgba(255,255,255,0.6); margin: 2px; }
+    .tag .rm { cursor: pointer; opacity: 0.5; margin-left: 3px; }
+    .tag .rm:hover { opacity: 1; }
+
+    /* Recipient Tags */
+    .recip-preview { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+    .recip-tag { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.15); border-radius: 6px; font-size: 11px; }
+
+    /* Brand Template Cards */
+    .brand-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+    .brand-card {
+      padding: 12px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .brand-card:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.12); }
+    .brand-card .brand-name { font-size: 13px; font-weight: 600; }
+    .brand-card .brand-count { font-size: 10px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+    .brand-card .brand-logo { font-size: 22px; margin-bottom: 6px; }
+
+    /* Template Item */
+    .template-item {
+      padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+      margin-bottom: 6px; cursor: pointer; transition: all 0.2s;
+    }
+    .template-item:hover { background: rgba(255,255,255,0.05); }
+    .template-item .t-name { font-size: 12px; font-weight: 600; }
+    .template-item .t-subj { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+    .template-item .t-preview { font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 4px; }
+
+    /* Email List (IMAP) */
+    .email-list-item {
+      padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05); border-radius: 10px;
+      margin-bottom: 4px; cursor: pointer; transition: all 0.2s;
+    }
+    .email-list-item:hover { background: rgba(255,255,255,0.06); }
+    .email-list-item .e-from { font-size: 12px; font-weight: 600; }
+    .email-list-item .e-subj { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; }
+    .email-list-item .e-date { font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 2px; }
+
+    /* Scan Findings */
+    .findings-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .findings-table th { text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); border-bottom: 1px solid rgba(255,255,255,0.06); font-weight: 600; }
+    .findings-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.03); }
+
+    /* Progress */
+    .prog-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; margin: 6px 0; }
+    .prog-bar .fill { height: 100%; background: linear-gradient(90deg, #6366f1, #ec4899); border-radius: 10px; transition: width 0.4s ease; width: 0%; }
+
+    /* Checkbox */
+    .chk { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .chk input[type="checkbox"] { width: 14px; height: 14px; accent-color: #6366f1; }
+    .chk label { font-size: 12px; color: rgba(255,255,255,0.6); cursor: pointer; }
+
+    /* Inline Code */
+    code { background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 4px; font-size: 11px; color: rgba(255,255,255,0.5); }
+
+    /* Var Row */
+    .var-row { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; }
+    .var-row input { flex: 1; }
+    .var-row .btn-x { width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(239,68,68,0.15); color: #f87171; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+    /* Confidence bar */
+    .conf-bar { display: flex; align-items: center; gap: 6px; }
+    .conf-bar .bar { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; }
+    .conf-bar .bar .f { height: 100%; border-radius: 10px; }
+    .conf-bar .val { font-size: 10px; font-weight: 600; min-width: 30px; text-align: right; }
+
+    /* Spoof Preview */
+    .spoof-preview { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); margin: 8px 0; }
+    .spoof-preview .avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #6366f1, #ec4899); display: flex; align-items: center; justify-content: center; font-size: 16px; color: #fff; font-weight: 700; }
+    .spoof-preview .details { font-size: 12px; }
+    .spoof-preview .details .s-name { font-weight: 600; }
+    .spoof-preview .details .s-email { color: rgba(255,255,255,0.4); font-size: 11px; }
+
+    /* Template Send Card */
+    .template-send-card {
+      padding: 16px; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    .template-send-card .t-header {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .template-send-card .t-header .t-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .template-send-card .t-header .t-icon.ledger { background: rgba(0,85,255,0.15); color: #60a5fa; }
+    .template-send-card .t-header .t-icon.yahoo { background: rgba(111,0,255,0.15); color: #a78bfa; }
+    .template-send-card .t-header .t-name { font-size: 14px; font-weight: 600; }
+    .template-send-card .t-header .t-desc { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+    @media (max-width: 1024px) {
+      .sidebar { display: none; }
+      .mobile-sidebar { display: block !important; }
+    }
+    .mobile-sidebar { display: none; position: fixed; bottom: 0; left: 0; width: 100%; z-index: 100; background: rgba(10,10,20,0.98); border-top: 1px solid rgba(255,255,255,0.06); padding: 6px 10px; backdrop-filter: blur(20px); }
+    .mobile-sidebar .nav-row { display: flex; overflow-x: auto; gap: 2px; }
+    .mobile-sidebar .nav-row button { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 12px; border: none; background: transparent; color: rgba(255,255,255,0.3); font-family: 'Inter', sans-serif; font-size: 9px; cursor: pointer; border-radius: 8px; transition: all 0.2s; }
+    .mobile-sidebar .nav-row button.active { color: #818cf8; background: rgba(99,102,241,0.1); }
+    .mobile-sidebar .nav-row button i { font-size: 16px; }
+
+    @media (max-width: 768px) {
+      .app { padding: 10px; }
+      .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
+      .card { padding: 14px; }
+      .brand-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+      .layout { flex-direction: column; }
+      .sidebar { display: none; }
+      .mobile-sidebar { display: block; }
+      .main-content { padding-bottom: 70px; }
+    }
+
+    .var-preview { background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.15); border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 11px; color: rgba(255,255,255,0.6); }
+    .brand-badge { display: inline-block; padding: 2px 10px; background: rgba(255,255,255,0.05); border-radius: 50px; font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.4); }
+  </style>
+</head>
+<body>
+<div class="bg-glow"><div class="glow"></div><div class="glow"></div><div class="glow"></div></div>
+<div class="grid-lines"></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Login Page -->
+<div class="login-page" id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <i class="fas fa-skull"></i>
+      <h1>Wxcked Mailer</h1>
+      <p>Secure Web Panel Access</p>
+    </div>
+    <form id="loginForm">
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter username" required autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password" required autocomplete="current-password" />
+      </div>
+      <button type="submit" class="btn-login" id="loginBtn"><i class="fas fa-sign-in-alt"></i> Login</button>
+      <div class="login-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app" id="mainApp" style="display:none;">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="logo">
+        <i class="fas fa-skull"></i>
+        <div>Wxcked<div><span>v2.0 Dashboard</span></div></div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="active" data-page="dashboard"><i class="fas fa-th-large"></i> Dashboard</button>
+        <div class="divider"></div>
+        <button data-page="compose"><i class="fas fa-pen-fancy"></i> Compose</button>
+        <button data-page="brands"><i class="fas fa-store"></i> Brand Library <span class="badge-count" id="brandCount">150+</span></button>
+        <button data-page="templates"><i class="fas fa-file-alt"></i> My Templates</button>
+        <button data-page="mass"><i class="fas fa-rocket"></i> Mass Mailer</button>
+        <button data-page="schedules"><i class="far fa-clock"></i> Schedule</button>
+        <div class="divider"></div>
+        <button data-page="imap"><i class="fas fa-inbox"></i> Inbox Viewer</button>
+        <button data-page="scan"><i class="fas fa-search"></i> Scan History</button>
+        <button data-page="spoof"><i class="fas fa-mask"></i> Spoof Settings</button>
+        <div class="divider"></div>
+        <button data-page="smtp"><i class="fas fa-server"></i> SMTP Configs</button>
+        <button data-page="proxies"><i class="fas fa-shield"></i> Proxies</button>
+        <button data-page="team"><i class="fas fa-users"></i> Team</button>
+        <button data-page="settings"><i class="fas fa-cog"></i> Settings</button>
+        <button data-page="users" id="usersNavBtn"><i class="fas fa-user-cog"></i> Users</button>
+      </nav>
+      <div class="user-info">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <div class="u-name" id="userName">admin</div>
+          <div class="u-role" id="userRole">admin</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <!-- Top Bar -->
+      <div class="top-bar">
+        <div class="page-title" id="pageTitle"><i class="fas fa-th-large"></i> Dashboard</div>
+        <div class="status-pills">
+          <span class="pill"><span class="dot loading" id="srvDot"></span> <span id="srvStatus">Check</span></span>
+          <span class="pill"><span class="dot loading" id="emlDot"></span> <span id="emlStatus">SMTP</span></span>
+          <span class="pill"><span class="dot loading" id="tgDot"></span> <span id="tgStatus">TG</span></span>
+          <span class="pill"><i class="fas fa-layer-group"></i> <span id="statBrands">0</span> Brands</span>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: DASHBOARD ======== -->
+      <div class="page active" id="page-dashboard">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple"><i class="fas fa-th-large"></i></div>
+            <div><h3>Platform Overview</h3><p>Wxcked Mailer v2 — Full email & Telegram campaign suite</p></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;">
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#818cf8,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statSmtp">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">SMTP Configs</div>
+            </div>
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#f43f5e,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statTemplates">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">Templates</div>
+            </div>
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#22d3ee,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statBrands2">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">Brand Templates</div>
+            </div>
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#fbbf24,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statImap">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">IMAP Configs</div>
+            </div>
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#4ade80,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statSchedules">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">Schedules</div>
+            </div>
+            <div class="stat-card" style="padding:16px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:28px;font-weight:700;background:linear-gradient(135deg,#f87171,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;" id="statProxies">0</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:4px;">Proxies</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon cyan"><i class="fas fa-bolt"></i></div>
+            <div><h3>Quick Actions</h3><p>Common tasks at your fingertips</p></div>
+          </div>
+          <div class="btn-group">
+            <button class="btn btn-primary" onclick="switchPage('compose')"><i class="fas fa-pen-fancy"></i> Compose Email</button>
+            <button class="btn btn-ghost" onclick="switchPage('brands')"><i class="fas fa-store"></i> Browse Brands</button>
+            <button class="btn btn-ghost" onclick="switchPage('mass')"><i class="fas fa-rocket"></i> Mass Mail</button>
+            <button class="btn btn-ghost" onclick="switchPage('imap')"><i class="fas fa-inbox"></i> View Inbox</button>
+            <button class="btn btn-telegram" onclick="switchPage('settings')"><i class="fas fa-cog"></i> Template Settings</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: COMPOSE ======== -->
+      <div class="page" id="page-compose">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple"><i class="fas fa-pen-fancy"></i></div>
+            <div><h3>Compose Email</h3><p>Send with spoofed name/email and Telegram notification</p></div>
+          </div>
+          <form id="composeForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>SMTP Config</label>
+                <select id="cmpSmtp"><option value="">Use Default (.env)</option></select>
+              </div>
+              <div class="form-group">
+                <label>To</label>
+                <input type="email" id="cmpTo" placeholder="target@example.com" required />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>From Name (spoof)</label>
+                <input type="text" id="cmpFromName" placeholder="e.g. Google Security" />
+              </div>
+              <div class="form-group">
+                <label>From Email (spoof)</label>
+                <input type="email" id="cmpFromEmail" placeholder="security@google.com" />
+              </div>
+            </div>
+            <div id="cmpSpoofPreview" class="spoof-preview" style="display:none;"></div>
+            <div class="form-group">
+              <label>Subject</label>
+              <input type="text" id="cmpSubject" placeholder="Enter subject" required />
+            </div>
+            <div class="form-group">
+              <label>Message (HTML supported) — Live Editor & Preview</label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div>
+                  <textarea id="cmpBody" placeholder="Write your HTML email here..." required style="min-height:300px;font-family:monospace;font-size:12px;"></textarea>
+                </div>
+                <div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.35);margin-bottom:4px;">Live Preview</div>
+                  <iframe id="cmpPreview" style="width:100%;height:300px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;background:#fff;" sandbox="allow-same-origin"></iframe>
+                </div>
+              </div>
+              <div class="btn-group" style="margin-top:6px;">
+                <button type="button" class="btn btn-ghost btn-xs" onclick="loadLedgerTemplate()"><i class="fas fa-shield"></i> Load Ledger</button>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="loadYahooTemplate()"><i class="fas fa-envelope"></i> Load Yahoo</button>
+                <button type="button" class="btn btn-ghost btn-xs" onclick="document.getElementById('cmpBody').value='';updatePreview()"><i class="fas fa-eraser"></i> Clear</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <button type="submit" class="btn btn-primary btn-full" id="cmpBtn"><i class="fas fa-paper-plane"></i> Send Email</button>
+              </div>
+              <div class="form-group">
+                <button type="button" class="btn btn-telegram btn-full" onclick="sendTelegramOnly()"><i class="fab fa-telegram-plane"></i> Send Telegram Only</button>
+              </div>
+            </div>
+          </form>
+          <div class="resp-box" id="cmpResp"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon pink"><i class="fas fa-bolt"></i></div>
+            <div><h3>Send Email + Telegram Combined</h3><p>Both at once with a single click</p></div>
+          </div>
+          <form id="combinedForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>SMTP Config</label>
+                <select id="comSmtp"><option value="">Use Default (.env)</option></select>
+              </div>
+              <div class="form-group">
+                <label>To</label>
+                <input type="email" id="comTo" placeholder="recipient@example.com" required />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Subject</label>
+              <input type="text" id="comSubject" placeholder="Subject" required />
+            </div>
+            <div class="form-group">
+              <label>Email Message</label>
+              <textarea id="comBody" placeholder="Write your email..." required style="min-height:100px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Telegram Notification</label>
+              <textarea id="comTelegram" placeholder="Custom Telegram message (optional)" style="min-height:60px;"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full" id="comBtn"><i class="fas fa-bolt"></i> Send Both</button>
+          </form>
+          <div class="resp-box" id="comResp"></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: BRANDS ======== -->
+      <div class="page" id="page-brands">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon amber"><i class="fas fa-store"></i></div>
+            <div><h3>Brand Template Library</h3><p>150+ verified templates from top brands — click to preview & inject</p></div>
+          </div>
+          <div id="brandList">
+            <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading brands...</p></div>
+          </div>
+        </div>
+        <div class="card" id="brandTemplatesCard" style="display:none;">
+          <div class="card-header">
+            <div class="card-icon purple"><i class="fas fa-list"></i></div>
+            <div><h3 id="brandTemplatesTitle">Templates</h3><p>Click a template to load it into the composer</p></div>
+          </div>
+          <div id="brandTemplatesList"></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: TEMPLATES ======== -->
+      <div class="page" id="page-templates">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green"><i class="fas fa-file-alt"></i></div>
+            <div><h3>My Templates</h3><p>Create and manage reusable email templates</p></div>
+          </div>
+          <div class="btn-group" style="margin-bottom:12px;">
+            <button class="btn btn-primary btn-sm" onclick="openTemplateModal()"><i class="fas fa-plus"></i> New Template</button>
+          </div>
+          <div id="templateList"><div class="empty-state"><i class="fas fa-file-alt"></i><p>No templates yet</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: MASS ======== -->
+      <div class="page" id="page-mass">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon pink"><i class="fas fa-rocket"></i></div>
+            <div><h3>Mass Mailer</h3><p>Send to multiple recipients with template variables and delay</p></div>
+          </div>
+          <form id="massForm">
+            <div class="form-row">
+              <div class="form-group">
+                <label>SMTP Config</label>
+                <select id="massSmtp"><option value="">Use Default (.env)</option></select>
+              </div>
+              <div class="form-group">
+                <label>My Template</label>
+                <select id="massTemplate"><option value="">None (manual)</option></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Subject (use {{var}} for variables)</label>
+              <input type="text" id="massSubject" placeholder="Hello {{name}}!" required />
+            </div>
+            <div class="form-group">
+              <label>Body (HTML supported, use {{var}})</label>
+              <textarea id="massBody" placeholder="<h1>Hello {{name}}!</h1><p>...</p>" required style="min-height:150px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Recipients (one per line: email or email,var=val)</label>
+              <textarea id="massRecips" placeholder="john@example.com&#10;jane@example.com,name=Jane,company=Acme" style="min-height:100px;"></textarea>
+              <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;">Format: <code>email</code> or <code>email,var=value</code></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Delay between sends (ms)</label>
+                <input type="number" id="massDelay" value="200" min="0" max="5000" />
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <div class="chk" style="margin:0;">
+                  <input type="checkbox" id="massTG" checked />
+                  <label for="massTG">Telegram notification on complete</label>
+                </div>
+              </div>
+            </div>
+            <div id="massRecipPreview" class="recip-preview"></div>
+            <button type="submit" class="btn btn-primary btn-full" id="massBtn"><i class="fas fa-rocket"></i> Launch Mass Mail</button>
+          </form>
+          <div class="resp-box" id="massResp"></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: SCHEDULES ======== -->
+      <div class="page" id="page-schedules">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon cyan"><i class="far fa-clock"></i></div>
+            <div><h3>Scheduled Sends</h3><p>Schedule emails with cron expressions & timezone support</p></div>
+          </div>
+          <form id="scheduleForm" style="margin-bottom:16px;">
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>Schedule Name</label>
+                <input type="text" id="schName" placeholder="e.g. Monday Campaign" required />
+              </div>
+              <div class="form-group">
+                <label>Cron Expression</label>
+                <input type="text" id="schCron" placeholder="*/5 * * * *" value="0 9 * * 1" />
+                <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:3px;"><code>m h d M w</code> — <span style="cursor:pointer;color:#818cf8;" onclick="showToast('min hour dom mon dow','info')">help</span></div>
+              </div>
+              <div class="form-group">
+                <label>Timezone</label>
+                <select id="schTz">
+                  <option value="UTC">UTC</option>
+                  <option value="America/New_York">EST (UTC-5)</option>
+                  <option value="America/Chicago">CST (UTC-6)</option>
+                  <option value="America/Denver">MST (UTC-7)</option>
+                  <option value="America/Los_Angeles">PST (UTC-8)</option>
+                  <option value="Europe/London">GMT (UTC+0)</option>
+                  <option value="Europe/Paris">CET (UTC+1)</option>
+                  <option value="Europe/Berlin">CET (UTC+1)</option>
+                  <option value="Asia/Dubai">GST (UTC+4)</option>
+                  <option value="Asia/Bangkok">ICT (UTC+7)</option>
+                  <option value="Asia/Shanghai">CST (UTC+8)</option>
+                  <option value="Asia/Tokyo">JST (UTC+9)</option>
+                  <option value="Australia/Sydney">AEST (UTC+10)</option>
+                  <option value="Pacific/Auckland">NZST (UTC+12)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label>SMTP Config</label>
+                <select id="schSmtp"><option value="">Use Default (.env)</option></select>
+              </div>
+              <div class="form-group">
+                <label>Subject</label>
+                <input type="text" id="schSubject" placeholder="Subject" />
+              </div>
+              <div class="form-group">
+                <label>Recipients (comma separated)</label>
+                <input type="text" id="schRecips" placeholder="user1@a.com, user2@b.com" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Body</label>
+              <textarea id="schBody" placeholder="Email body..." style="min-height:80px;"></textarea>
+            </div>
+            <div class="chk">
+              <input type="checkbox" id="schActive" checked />
+              <label for="schActive">Active on creation</label>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><i class="far fa-calendar-plus"></i> Create Schedule</button>
+          </form>
+          <div id="scheduleList"></div>
+          <div class="resp-box" id="schResp"></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: IMAP INBOX ======== -->
+      <div class="page" id="page-imap">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue"><i class="fas fa-inbox"></i></div>
+            <div><h3>Live Inbox Viewer</h3><p>Connect IMAP and browse emails in real time</p></div>
+          </div>
+          <div class="tabs">
+            <button class="tab active" data-imap-tab="configs"><i class="fas fa-cog"></i> Configs</button>
+            <button class="tab" data-imap-tab="viewer"><i class="fas fa-inbox"></i> Inbox</button>
+          </div>
+          
+          <div class="tab-content active" id="imap-tab-configs">
+            <div class="btn-group" style="margin-bottom:10px;">
+              <button class="btn btn-primary btn-sm" onclick="openImapConfigModal()"><i class="fas fa-plus"></i> Add IMAP Config</button>
+            </div>
+            <div id="imapConfigList"><div class="empty-state"><i class="fas fa-inbox"></i><p>No IMAP configs</p></div></div>
+          </div>
+          
+          <div class="tab-content" id="imap-tab-viewer">
+            <div class="form-row">
+              <div class="form-group">
+                <label>IMAP Config</label>
+                <select id="imapFetchConfig"><option value="">Select config...</option></select>
+              </div>
+              <div class="form-group">
+                <label>Search Criteria</label>
+                <select id="imapCriteria">
+                  <option value="ALL">All</option>
+                  <option value="UNSEEN">Unread</option>
+                  <option value="SEEN">Read</option>
+                  <option value="FLAGGED">Flagged</option>
+                  <option value="UNFLAGGED">Unflagged</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <button class="btn btn-primary btn-sm btn-full" onclick="fetchImapInbox()"><i class="fas fa-sync"></i> Fetch Inbox</button>
+              </div>
+            </div>
+            <div id="imapEmailList" style="margin-top:10px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: SCAN HISTORY ======== -->
+      <div class="page" id="page-scan">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon rose"><i class="fas fa-search"></i></div>
+            <div><h3>Scan History & Findings</h3><p>Track detected wallets, seed phrases, and crypto findings</p></div>
+          </div>
+          <div class="btn-group" style="margin-bottom:12px;">
+            <button class="btn btn-primary btn-sm" onclick="addScanEntry()"><i class="fas fa-plus"></i> Add Finding</button>
+            <button class="btn btn-success btn-sm" onclick="exportScanCSV()"><i class="fas fa-file-csv"></i> Export CSV</button>
+            <button class="btn btn-danger btn-sm" onclick="clearScanHistory()"><i class="fas fa-trash"></i> Clear All</button>
+          </div>
+          <div id="scanList"><div class="empty-state"><i class="fas fa-search"></i><p>No scan findings yet</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: SPOOF ======== -->
+      <div class="page" id="page-spoof">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon pink"><i class="fas fa-mask"></i></div>
+            <div><h3>Spoof & Identity Settings</h3><p>Configure per-SMTP spoof name, email & icon</p></div>
+          </div>
+          <p style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:14px;">Select an SMTP config below and set the display name & reply-to email to spoof. The preview shows how the email will appear in the recipient's inbox.</p>
+          <div id="smtpConfigList"><div class="empty-state"><i class="fas fa-server"></i><p>Add SMTP configs first</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: SMTP ======== -->
+      <div class="page" id="page-smtp">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple"><i class="fas fa-envelope"></i></div>
+            <div><h3>Sender Email Configuration</h3><p>Choose your email domain & prefix — used for panel and bot unless custom SMTP is added</p></div>
+          </div>
+          <div id="senderConfigDisplay"></div>
+          <div class="form-row" style="margin-top:12px;">
+            <div class="form-group">
+              <label>Email Domain</label>
+              <select id="senderDomain">
+                <option value="irnna.com">irnna.com</option>
+                <option value="smtp-banorte.com">smtp-banorte.com</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Email Prefix (e.g. noreply, support, info)</label>
+              <input type="text" id="senderPrefix" placeholder="noreply" value="noreply" />
+            </div>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:10px;">
+            💡 Your sender email will be <code id="senderPreview">noreply@irnna.com</code>. This is used for both panel and bot emails. Add custom SMTP configs to override.
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveSenderConfig()"><i class="fas fa-save"></i> Save Sender Config</button>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon amber"><i class="fas fa-server"></i></div>
+            <div><h3>SMTP Configurations</h3><p>Manage email sending servers — shared domains available by default</p></div>
+          </div>
+          <div class="btn-group" style="margin-bottom:10px;">
+            <button class="btn btn-primary btn-sm" onclick="openSmtpModal()"><i class="fas fa-plus"></i> Add Custom SMTP</button>
+          </div>
+          <div id="smtpList"><div class="empty-state"><i class="fas fa-server"></i><p>No SMTP configs</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: PROXIES ======== -->
+      <div class="page" id="page-proxies">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon blue"><i class="fas fa-shield"></i></div>
+            <div><h3>Proxy Rotation</h3><p>SOCKS4 / SOCKS5 / HTTP proxies with round-robin rotation</p></div>
+          </div>
+          <form id="proxyForm" style="margin-bottom:12px;">
+            <div class="form-row-4">
+              <div class="form-group">
+                <label>Host</label>
+                <input type="text" id="proxyHost" placeholder="127.0.0.1" required />
+              </div>
+              <div class="form-group">
+                <label>Port</label>
+                <input type="number" id="proxyPort" placeholder="1080" required />
+              </div>
+              <div class="form-group">
+                <label>Type</label>
+                <select id="proxyType">
+                  <option value="socks5">SOCKS5</option>
+                  <option value="socks4">SOCKS4</option>
+                  <option value="http">HTTP</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm btn-full"><i class="fas fa-plus"></i> Add Proxy</button>
+              </div>
+            </div>
+          </form>
+          <div id="proxyList"><div class="empty-state"><i class="fas fa-shield"></i><p>No proxies configured</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: TEAM ======== -->
+      <div class="page" id="page-team">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green"><i class="fas fa-users"></i></div>
+            <div><h3>Team Management</h3><p>Invite members by Telegram ID with role-based access</p></div>
+          </div>
+          <form id="teamForm" style="margin-bottom:12px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Telegram ID</label>
+                <input type="text" id="teamTgId" placeholder="@username or user ID" required />
+              </div>
+              <div class="form-group">
+                <label>Role</label>
+                <select id="teamRole">
+                  <option value="member">Member</option>
+                  <option value="admin">Admin</option>
+                  <option value="viewer">Viewer</option>
+                </select>
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm btn-full"><i class="fas fa-user-plus"></i> Invite</button>
+              </div>
+            </div>
+          </form>
+          <div id="teamList"><div class="empty-state"><i class="fas fa-users"></i><p>No team members</p></div></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: SETTINGS ======== -->
+      <div class="page" id="page-settings">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon purple"><i class="fas fa-cog"></i></div>
+            <div><h3>Settings</h3><p>Manage your sender profile, spoof settings, and preferences</p></div>
+          </div>
+          <div class="form-group">
+            <label>Sender Name (spoof)</label>
+            <input type="text" id="setSenderName" placeholder="e.g. Ledger Security" />
+          </div>
+          <div class="form-group">
+            <label>Spoofed Email</label>
+            <input type="email" id="setSpoofEmail" placeholder="security@ledger.com" />
+          </div>
+          <div class="form-group">
+            <label>Sender Profile Picture</label>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <img id="setProfilePicPreview" src="" alt="Profile" style="width:48px;height:48px;border-radius:50%;object-fit:cover;display:none;border:2px solid rgba(255,255,255,0.1);" />
+              <input type="file" id="setProfilePicInput" accept="image/*" style="flex:1;" />
+            </div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:4px;">Upload an image to use as your sender avatar in emails</div>
+          </div>
+          <button class="btn btn-primary" onclick="saveSenderSettings()"><i class="fas fa-save"></i> Save Sender Settings</button>
+          <div class="resp-box" id="settingsResp"></div>
+        </div>
+      </div>
+
+      <!-- ======== PAGE: USERS ======== -->
+      <div class="page" id="page-users">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-icon green"><i class="fas fa-user-cog"></i></div>
+            <div><h3>Web Panel Users</h3><p>Add users, link their Telegram, and manage access</p></div>
+          </div>
+          <form id="userForm" style="margin-bottom:12px;">
+            <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+              <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="newUsername" placeholder="username" required />
+              </div>
+              <div class="form-group">
+                <label>Password</label>
+                <input type="text" id="newPassword" placeholder="password" required />
+              </div>
+              <div class="form-group">
+                <label>Telegram Username</label>
+                <input type="text" id="newTelegramId" placeholder="@username (optional)" />
+              </div>
+              <div class="form-group" style="display:flex;align-items:flex-end;">
+                <button type="submit" class="btn btn-primary btn-sm btn-full"><i class="fas fa-user-plus"></i> Add & Link</button>
+              </div>
+            </div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:2px;">
+              💡 Users can also self-link by sending <code>/link</code> to the Telegram bot with their panel username & password.
+            </div>
+          </form>
+          <div id="userList"><div class="empty-state"><i class="fas fa-users"></i><p>No users</p></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Mobile Bottom Nav -->
+<div class="mobile-sidebar" id="mobileSidebar" style="display:none;">
+  <div class="nav-row">
+    <button class="active" data-page="dashboard"><i class="fas fa-th-large"></i>Home</button>
+    <button data-page="compose"><i class="fas fa-pen-fancy"></i>Send</button>
+    <button data-page="brands"><i class="fas fa-store"></i>Brands</button>
+    <button data-page="mass"><i class="fas fa-rocket"></i>Mass</button>
+    <button data-page="imap"><i class="fas fa-inbox"></i>Inbox</button>
+    <button data-page="scan"><i class="fas fa-search"></i>Scan</button>
+    <button data-page="smtp"><i class="fas fa-server"></i>SMTP</button>
+    <button data-page="proxies"><i class="fas fa-shield"></i>Proxy</button>
+    <button data-page="settings"><i class="fas fa-cog"></i>Settings</button>
+  </div>
+</div>
+
+<!-- SMTP Modal -->
+<div class="modal-overlay" id="smtpModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="smtpModalTitle">Add SMTP Config</h3>
+      <button class="modal-close" onclick="closeSmtpModal()">&times;</button>
+    </div>
+    <form id="smtpForm">
+      <input type="hidden" id="smtpId" />
+      <div class="form-group">
+        <label>Config Name</label>
+        <input type="text" id="smtpName" placeholder="Gmail, Outlook, Custom..." required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SMTP Host</label>
+          <input type="text" id="smtpHost" placeholder="smtp.gmail.com" required />
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" id="smtpPort" placeholder="587" value="587" />
+        </div>
+      </div>
+      <div class="chk">
+        <input type="checkbox" id="smtpSecure" />
+        <label for="smtpSecure">Use SSL/TLS (port 465)</label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username / Email</label>
+          <input type="text" id="smtpUser" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="smtpPass" placeholder="App password" />
+        </div>
+      </div>
+      <div class="card" style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:600;margin-bottom:6px;">Spoof Settings (optional)</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Spoof From Name</label>
+            <input type="text" id="smtpSpoofName" placeholder="Google Security" />
+          </div>
+          <div class="form-group">
+            <label>Spoof From Email</label>
+            <input type="email" id="smtpSpoofEmail" placeholder="security@google.com" />
+          </div>
+        </div>
+        <div id="smtpSpoofPreview" class="spoof-preview" style="display:none;"></div>
+      </div>
+      <div class="btn-group" style="margin-top:12px;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testSmtp()"><i class="fas fa-vial"></i> Test</button>
+        <button type="submit" class="btn btn-primary btn-sm" id="smtpSaveBtn"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </form>
+    <div class="resp-box" id="smtpModalResp"></div>
+  </div>
+</div>
+
+<!-- IMAP Config Modal -->
+<div class="modal-overlay" id="imapModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="imapModalTitle">Add IMAP Config</h3>
+      <button class="modal-close" onclick="closeImapModal()">&times;</button>
+    </div>
+    <form id="imapForm">
+      <input type="hidden" id="imapId" />
+      <div class="form-group">
+        <label>Config Name</label>
+        <input type="text" id="imapName" placeholder="Gmail IMAP" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>IMAP Host</label>
+          <input type="text" id="imapHost" placeholder="imap.gmail.com" required />
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" id="imapPort" placeholder="993" value="993" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="text" id="imapUser" placeholder="your@email.com" required />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="imapPass" placeholder="App password" />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save IMAP Config</button>
+    </form>
+    <div class="resp-box" id="imapModalResp"></div>
+  </div>
+</div>
+
+<!-- Template Modal -->
+<div class="modal-overlay" id="templateModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3 id="templateModalTitle">Create Template</h3>
+      <button class="modal-close" onclick="closeTemplateModal()">&times;</button>
+    </div>
+    <form id="templateForm">
+      <input type="hidden" id="templateId" />
+      <div class="form-group">
+        <label>Template Name</label>
+        <input type="text" id="templateName" placeholder="e.g. Welcome Email" required />
+      </div>
+      <div class="form-group">
+        <label>Subject (use {{var}} for variables)</label>
+        <input type="text" id="templateSubject" placeholder="Welcome {{name}}!" required />
+      </div>
+      <div class="form-group">
+        <label>Body (HTML supported)</label>
+        <textarea id="templateBody" placeholder="<h1>Hello {{name}}!</h1>" required style="min-height:180px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Variables (name & default value)</label>
+        <div id="templateVars">
+          <div class="var-row">
+            <input type="text" class="tv-name" placeholder="name" />
+            <input type="text" class="tv-val" placeholder="John" />
+            <button type="button" class="btn-x" onclick="this.parentElement.remove()">&times;</button>
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-xs" onclick="addTemplateVar()" style="margin-top:4px;"><i class="fas fa-plus"></i> Add Variable</button>
+      </div>
+      <div class="btn-group">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="previewTemplate()"><i class="fas fa-eye"></i> Preview</button>
+        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Save</button>
+      </div>
+    </form>
+    <div class="resp-box" id="templateModalResp"></div>
+  </div>
+</div>
+
+<!-- Scan Entry Modal -->
+<div class="modal-overlay" id="scanModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Add Scan Finding</h3>
+      <button class="modal-close" onclick="closeScanModal()">&times;</button>
+    </div>
+    <form id="scanForm">
+      <div class="form-group">
+        <label>Type</label>
+        <select id="scanType">
+          <option value="seed_phrase">Seed Phrase</option>
+          <option value="private_key">Private Key</option>
+          <option value="wallet_address">Wallet Address</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Email / Source</label>
+        <input type="text" id="scanEmail" placeholder="Found in which email?" />
+      </div>
+      <div class="form-group">
+        <label>Found Data</label>
+        <textarea id="scanData" placeholder="The detected seed phrase, key, or address..." required style="min-height:60px;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Confidence Score (0-100)</label>
+        <input type="range" id="scanConfidence" min="0" max="100" value="85" oninput="document.getElementById('scanConfVal').textContent=this.value+'%'" />
+        <div style="text-align:right;font-size:11px;color:rgba(255,255,255,0.4);"><span id="scanConfVal">85%</span></div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Add Finding</button>
+    </form>
+  </div>
+</div>
+
+<script>
+// ===== AUTH =====
+let authToken = localStorage.getItem('wxcked_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('wxcked_user') || 'null');
+
+function apiFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}), 'Authorization': `Bearer ${authToken}` };
+  if (options.body && typeof options.body === 'object') {
+    headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(options.body);
+  }
+  return fetch(url, { ...options, headers });
+}
+
+async function checkAuth() {
+  if (!authToken) { showLogin(); return; }
+  try {
+    const r = await apiFetch('/api/auth/me');
+    const d = await r.json();
+    if (d.success) {
+      currentUser = d.user;
+      localStorage.setItem('wxcked_user', JSON.stringify(currentUser));
+      showApp();
+    } else {
+      showLogin();
+    }
+  } catch (e) { showLogin(); }
+}
+
+function showLogin() {
+  document.getElementById('loginPage').classList.remove('hidden');
+  document.getElementById('mainApp').style.display = 'none';
+  document.getElementById('mobileSidebar').style.display = 'none';
+}
+
+function showApp() {
+  document.getElementById('loginPage').classList.add('hidden');
+  document.getElementById('mainApp').style.display = 'block';
+  document.getElementById('mobileSidebar').style.display = 'block';
+  document.getElementById('userName').textContent = currentUser.username;
+  document.getElementById('userRole').textContent = currentUser.role;
+  document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
+  if (currentUser.role !== 'admin') {
+    document.getElementById('usersNavBtn').style.display = 'none';
+  }
+  init();
+}
+
+async function logout() {
+  try { await apiFetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+  authToken = '';
+  currentUser = null;
+  localStorage.removeItem('wxcked_token');
+  localStorage.removeItem('wxcked_user');
+  showLogin();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  document.getElementById('loginError').classList.remove('show');
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: document.getElementById('loginUsername').value, password: document.getElementById('loginPassword').value }),
+    });
+    const d = await r.json();
+    if (d.success) {
+      authToken = d.token;
+      currentUser = d.user;
+      localStorage.setItem('wxcked_token', authToken);
+      localStorage.setItem('wxcked_user', JSON.stringify(currentUser));
+      showApp();
+      showToast('Welcome back, ' + currentUser.username + '!', 'success');
+    } else {
+      const err = document.getElementById('loginError');
+      err.textContent = d.message || 'Invalid credentials';
+      err.classList.add('show');
+    }
+  } catch (err) {
+    const el = document.getElementById('loginError');
+    el.textContent = 'Connection error';
+    el.classList.add('show');
+  }
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+});
+
+// ===== UTILITIES =====
+function showToast(msg, type = 'info') {
+  const c = document.getElementById('toastContainer');
+  const icons = { success: 'fa-check-circle', error: 'fa-times-circle', info: 'fa-info-circle' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="t-icon"><i class="fas ${icons[type] || icons.info}"></i></span><span>${msg}</span><button class="t-close" onclick="this.parentElement.remove()">&times;</button>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.animation = 'toastOut 0.35s ease forwards'; setTimeout(() => t.remove(), 350); }, 4000);
+}
+
+function setLoad(id, loading, html) {
+  const el = document.getElementById(id);
+  if (loading) { el.disabled = true; el.innerHTML = '<span class="spinner"></span>'; }
+  else { el.disabled = false; if (html) el.innerHTML = html; }
+}
+
+function showResp(id, data, isErr = false) {
+  const el = document.getElementById(id);
+  el.className = `resp-box show ${isErr ? 'bad' : 'good'}`;
+  const lbl = isErr ? 'Error' : 'Success';
+  const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+  el.innerHTML = `<div class="rl">${lbl}</div><pre>${content}</pre>`;
+}
+
+function $id(id) { return document.getElementById(id); }
+
+// ===== PAGE SWITCHING =====
+let currentPage = 'dashboard';
+
+function switchPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.querySelectorAll('.sidebar-nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mobile-sidebar .nav-row button').forEach(b => b.classList.remove('active'));
+  const sel = document.querySelector(`.sidebar-nav button[data-page="${page}"]`);
+  const selM = document.querySelector(`.mobile-sidebar .nav-row button[data-page="${page}"]`);
+  if (sel) sel.classList.add('active');
+  if (selM) selM.classList.add('active');
+  
+  const titles = {
+    dashboard: 'Dashboard', compose: 'Compose Email', brands: 'Brand Library', templates: 'My Templates',
+    mass: 'Mass Mailer', schedules: 'Schedule', imap: 'Inbox Viewer', scan: 'Scan History',
+    spoof: 'Spoof Settings', smtp: 'SMTP Configs', proxies: 'Proxies', team: 'Team',
+    settings: 'Settings', users: 'Users'
+  };
+  const icons = {
+    dashboard: 'th-large', compose: 'pen-fancy', brands: 'store', templates: 'file-alt',
+    mass: 'rocket', schedules: 'clock', imap: 'inbox', scan: 'search',
+    spoof: 'mask', smtp: 'server', proxies: 'shield', team: 'users',
+    settings: 'cog', users: 'user-cog'
+  };
+  document.querySelector('.page-title').innerHTML = `<i class="fas fa-${icons[page] || 'th-large'}"></i> ${titles[page] || page}`;
+  
+  if (page === 'smtp' || page === 'compose' || page === 'mass' || page === 'schedules' || page === 'spoof' || page === 'settings') loadSmtpConfigs();
+  if (page === 'templates' || page === 'mass') loadTemplates();
+  if (page === 'brands') loadBrands();
+  if (page === 'imap') loadImapConfigs();
+  if (page === 'scan') loadScanHistory();
+  if (page === 'proxies') loadProxies();
+  if (page === 'team') loadTeam();
+  if (page === 'schedules') loadSchedules();
+  if (page === 'settings') loadSettings();
+  if (page === 'users') loadUsers();
+}
+
+// Sidebar + mobile nav
+document.querySelectorAll('.sidebar-nav button[data-page]').forEach(b => {
+  b.addEventListener('click', () => switchPage(b.dataset.page));
+});
+document.querySelectorAll('.mobile-sidebar .nav-row button[data-page]').forEach(b => {
+  b.addEventListener('click', () => switchPage(b.dataset.page));
+});
+
+// IMAP sub-tabs
+document.querySelectorAll('[data-imap-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const p = tab.parentElement;
+    p.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.imapTab;
+    p.parentElement.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.getElementById(`imap-tab-${target}`).classList.add('active');
+  });
+});
+
+// Settings sub-tabs
+document.querySelectorAll('[data-settings-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const p = tab.parentElement;
+    p.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const target = tab.dataset.settingsTab;
+    p.parentElement.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+    document.getElementById(`settings-tab-${target}`).classList.add('active');
+  });
+});
+
+// ===== STATUS =====
+async function checkStatus() {
+  try {
+    const r = await apiFetch('/api/status');
+    const d = await r.json();
+    $id('srvDot').className = 'dot on';
+    $id('srvStatus').textContent = 'Online';
+    $id('emlDot').className = d.email ? 'dot on' : 'dot off';
+    $id('emlStatus').textContent = d.email ? 'Ready' : 'No SMTP';
+    $id('tgDot').className = d.telegram ? 'dot on' : 'dot off';
+    $id('tgStatus').textContent = d.telegram ? 'Online' : 'Offline';
+    $id('statSmtp').textContent = d.smtpConfigs || 0;
+    $id('statTemplates').textContent = d.templates || 0;
+    $id('statBrands').textContent = d.brandTemplates || 0;
+    $id('statBrands2').textContent = d.brandTemplates || 0;
+    $id('statImap').textContent = d.imapConfigs || 0;
+    $id('statSchedules').textContent = d.schedules || 0;
+    $id('statProxies').textContent = d.proxies || 0;
+    document.getElementById('brandCount').textContent = (d.brandTemplates || '0') + '+';
+  } catch (e) {
+    $id('srvDot').className = 'dot off';
+    $id('srvStatus').textContent = 'Offline';
+  }
+}
+
+// ===== SMTP CONFIGS =====
+let smtpData = { userConfigs: [], sharedConfigs: [], all: [] };
+
+async function loadSmtpConfigs() {
+  try {
+    const r = await apiFetch('/api/smtp-configs');
+    const data = await r.json();
+    // Handle both old (array) and new (object) response formats
+    if (Array.isArray(data)) {
+      smtpData = { userConfigs: data, sharedConfigs: [], all: data };
+    } else {
+      smtpData = data;
+    }
+    const configs = smtpData.all || [];
+    const userConfigs = smtpData.userConfigs || [];
+    const sharedConfigs = smtpData.sharedConfigs || [];
+    const selects = ['cmpSmtp','comSmtp','massSmtp','schSmtp','sendLedgerSmtp','sendYahooSmtp'];
+    selects.forEach(id => {
+      const sel = $id(id);
+      if (!sel) return;
+      sel.innerHTML = '<option value="">Use Default (Shared Domain)</option>';
+      if (sharedConfigs.length) {
+        const sharedGroup = sharedConfigs.map(c => `<option value="${c.id}">🌐 ${c.name} (${c.domain})</option>`).join('');
+        sel.innerHTML += `<optgroup label="Shared Domains">${sharedGroup}</optgroup>`;
+      }
+      if (userConfigs.length) {
+        const userGroup = userConfigs.map(c => `<option value="${c.id}">⚙️ ${c.name} (${c.user})</option>`).join('');
+        sel.innerHTML += `<optgroup label="Your Custom SMTP">${userGroup}</optgroup>`;
+      }
+    });
+    
+    const list = $id('smtpList');
+    if (!configs.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-server"></i><p>No SMTP configs. Shared domains are available by default.</p></div>';
+    } else {
+      list.innerHTML = configs.map(c => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${c.name} ${c.isShared ? '<span class="badge badge-blue"><i class="fas fa-globe"></i> Shared</span>' : ''} ${c.spoofName ? '<span class="badge badge-purple"><i class="fas fa-mask"></i> Spoof</span>' : ''}</div>
+            <div class="detail">${c.host}:${c.port} &bull; ${c.user} ${c.domain ? '&bull; ' + c.domain : ''}</div>
+          </div>
+          <div class="actions">
+            ${c.isShared ? '' : `<button class="btn btn-ghost btn-xs" onclick="editSmtp('${c.id}')"><i class="fas fa-edit"></i></button>`}
+            ${c.isShared ? '' : `<button class="btn btn-danger btn-xs" onclick="deleteSmtp('${c.id}')"><i class="fas fa-trash"></i></button>`}
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    $id('smtpConfigList').innerHTML = configs.length ? configs.map(c => `
+      <div class="data-item">
+        <div class="info">
+          <div class="name">${c.name} ${c.isShared ? '<span class="badge badge-blue">Shared</span>' : ''}</div>
+          <div class="detail">Display: ${c.spoofName || '(not set)'} <${c.spoofEmail || c.user}> ${c.domain ? '&bull; ' + c.domain : ''}</div>
+        </div>
+        <div class="actions">
+          ${c.isShared ? '<span class="badge badge-purple">Auto-prefix</span>' : `<button class="btn btn-ghost btn-xs" onclick="openSmtpModalForSpoof('${c.id}')"><i class="fas fa-mask"></i> Edit Spoof</button>`}
+        </div>
+      </div>
+    `).join('') : '<div class="empty-state"><i class="fas fa-server"></i><p>Shared domains available by default</p></div>';
+    
+    loadSenderConfig();
+    checkStatus();
+  } catch (e) { showToast('Failed to load SMTP configs', 'error'); }
+}
+
+// ===== SENDER CONFIG =====
+async function loadSenderConfig() {
+  try {
+    const r = await apiFetch('/api/sender-config');
+    const d = await r.json();
+    if (d.success) {
+      const sc = d.senderConfig;
+      const el = $id('senderConfigDisplay');
+      if (el) {
+        if (sc.hasCustomSmtp) {
+          el.innerHTML = `<div class="spoof-preview" style="display:flex;">
+            <div class="avatar"><i class="fas fa-server"></i></div>
+            <div class="details">
+              <div class="s-name">Custom SMTP Active</div>
+              <div class="s-email">Your custom SMTP configs override shared domains</div>
+            </div>
+          </div>`;
+        } else {
+          el.innerHTML = `<div class="spoof-preview" style="display:flex;">
+            <div class="avatar">${(sc.prefix || '?')[0].toUpperCase()}</div>
+            <div class="details">
+              <div class="s-name">${sc.senderEmail}</div>
+              <div class="s-email">Domain: ${sc.domain} &bull; Prefix: ${sc.prefix}</div>
+            </div>
+          </div>`;
+        }
+      }
+      const domainSel = $id('senderDomain');
+      const prefixInput = $id('senderPrefix');
+      if (domainSel && d.sharedDomains) {
+        domainSel.innerHTML = d.sharedDomains.map(s => `<option value="${s.domain}" ${s.domain === sc.domain ? 'selected' : ''}>${s.name}</option>`).join('');
+      }
+      if (prefixInput) prefixInput.value = sc.prefix;
+    }
+  } catch (e) {}
+}
+
+async function saveSenderConfig() {
+  const domain = $id('senderDomain').value;
+  const prefix = $id('senderPrefix').value.trim().toLowerCase();
+  if (!prefix) { showToast('Prefix is required', 'error'); return; }
+  try {
+    const r = await apiFetch('/api/sender-config', { method: 'POST', body: { domain, prefix } });
+    const d = await r.json();
+    if (d.success) {
+      showToast(`Sender email set to ${d.senderConfig.senderEmail}`, 'success');
+      loadSenderConfig();
+      loadSmtpConfigs();
+    } else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed to save sender config', 'error'); }
+}
+
+function openSmtpModal(config) {
+  $id('smtpModal').classList.add('show');
+  $id('smtpModalResp').className = 'resp-box';
+  $id('smtpModalResp').style.display = 'none';
+  if (config) {
+    $id('smtpModalTitle').textContent = 'Edit SMTP Config';
+    $id('smtpId').value = config.id;
+    $id('smtpName').value = config.name;
+    $id('smtpHost').value = config.host;
+    $id('smtpPort').value = config.port;
+    $id('smtpSecure').checked = config.secure === true || config.secure === 'true';
+    $id('smtpUser').value = config.user;
+    $id('smtpPass').value = '********';
+    $id('smtpSpoofName').value = config.spoofName || '';
+    $id('smtpSpoofEmail').value = config.spoofEmail || '';
+    updateSpoofPreview();
+  } else {
+    $id('smtpModalTitle').textContent = 'Add SMTP Config';
+    $id('smtpId').value = '';
+    $id('smtpForm').reset();
+    $id('smtpSpoofPreview').style.display = 'none';
+  }
+}
+
+function closeSmtpModal() { $id('smtpModal').classList.remove('show'); }
+
+function openSmtpModalForSpoof(id) {
+  apiFetch('/api/smtp-configs').then(r => r.json()).then(data => {
+    const configs = Array.isArray(data) ? data : (data.userConfigs || []);
+    const c = configs.find(x => x.id === id);
+    if (c) openSmtpModal(c);
+  });
+}
+
+function updateSpoofPreview() {
+  const name = $id('smtpSpoofName').value;
+  const email = $id('smtpSpoofEmail').value;
+  const preview = $id('smtpSpoofPreview');
+  if (name || email) {
+    preview.style.display = 'flex';
+    preview.innerHTML = `
+      <div class="avatar">${(name || '?')[0].toUpperCase()}</div>
+      <div class="details">
+        <div class="s-name">${name || '(No Name)'}</div>
+        <div class="s-email">${email || 'no-reply@spoofed.com'}</div>
+      </div>
+    `;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+$id('smtpSpoofName').addEventListener('input', updateSpoofPreview);
+$id('smtpSpoofEmail').addEventListener('input', updateSpoofPreview);
+
+async function editSmtp(id) {
+  const r = await apiFetch('/api/smtp-configs');
+  const data = await r.json();
+  const configs = Array.isArray(data) ? data : (data.userConfigs || []);
+  const c = configs.find(x => x.id === id);
+  if (c) openSmtpModal(c);
+}
+
+async function deleteSmtp(id) {
+  if (!confirm('Delete this SMTP config?')) return;
+  await apiFetch(`/api/smtp-configs/${id}`, { method: 'DELETE' });
+  showToast('SMTP deleted', 'success');
+  loadSmtpConfigs();
+}
+
+async function testSmtp() {
+  const data = {
+    host: $id('smtpHost').value,
+    port: $id('smtpPort').value,
+    secure: $id('smtpSecure').checked,
+    user: $id('smtpUser').value,
+    pass: $id('smtpPass').value === '********' ? '' : $id('smtpPass').value,
+  };
+  try {
+    const r = await apiFetch('/api/smtp-test', {
+      method: 'POST', body: data,
+    });
+    const result = await r.json();
+    const el = $id('smtpModalResp');
+    el.className = `resp-box show ${result.success ? 'good' : 'bad'}`;
+    el.innerHTML = `<div class="rl">${result.success ? 'Success' : 'Error'}</div><pre>${result.message}</pre>`;
+    if (result.success) showToast('SMTP test passed!', 'success');
+  } catch (e) { showToast('Test failed', 'error'); }
+}
+
+$id('smtpForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    id: $id('smtpId').value || undefined,
+    name: $id('smtpName').value,
+    host: $id('smtpHost').value,
+    port: parseInt($id('smtpPort').value) || 587,
+    secure: $id('smtpSecure').checked,
+    user: $id('smtpUser').value,
+    pass: $id('smtpPass').value,
+    spoofName: $id('smtpSpoofName').value,
+    spoofEmail: $id('smtpSpoofEmail').value,
+  };
+  try {
+    const r = await apiFetch('/api/smtp-configs', { method: 'POST', body: data });
+    const result = await r.json();
+    if (result.success) {
+      showToast('SMTP saved!', 'success');
+      closeSmtpModal();
+      loadSmtpConfigs();
+    } else showToast(result.message, 'error');
+  } catch (e) { showToast('Failed to save', 'error'); }
+});
+
+// ===== COMPOSE =====
+// Live preview for sender email
+function updateSenderPreview() {
+  const domain = $id('senderDomain') ? $id('senderDomain').value : 'irnna.com';
+  const prefix = $id('senderPrefix') ? $id('senderPrefix').value : 'noreply';
+  const preview = $id('senderPreview');
+  if (preview) preview.textContent = `${prefix}@${domain}`;
+}
+if ($id('senderDomain')) $id('senderDomain').addEventListener('change', updateSenderPreview);
+if ($id('senderPrefix')) $id('senderPrefix').addEventListener('input', updateSenderPreview);
+
+// Live HTML preview
+function updatePreview() {
+  const html = $id('cmpBody').value;
+  const iframe = $id('cmpPreview');
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open();
+  doc.write(html || '<div style="color:#999;padding:20px;font-family:sans-serif;">Live preview will appear here as you type...</div>');
+  doc.close();
+}
+$id('cmpBody').addEventListener('input', updatePreview);
+
+// Load Ledger template into compose
+async function loadLedgerTemplate() {
+  try {
+    const r = await apiFetch('/api/settings');
+    const s = await r.json();
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#f5f5f5;font-family:Helvetica,Arial,sans-serif;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background:#f5f5f5;">
+<tr><td align="center" style="padding:40px 20px;">
+<table border="0" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#fff;border:1px solid #e0e0e0;border-radius:4px;">
+<tr><td align="center" style="padding:20px 0 30px;">
+<img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZDZR6qiU_f7pR-CtqHam12l0gHGyD95pbpgU6yzE9Ag&s" width="160" alt="Ledger" style="display:block;" />
+</td></tr>
+<tr><td align="center" style="padding:0 32px 24px;">
+<h1 style="margin:0;font-size:24px;color:#000;">${s.ledgerHeading || 'Security Action Required'}</h1>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.6;color:#333;">${s.ledgerBody || ''}</p>
+</td></tr>
+<tr><td style="padding:0 32px 4px;">
+<h2 style="margin:0;font-size:20px;color:#000;">What Happened</h2>
+<p style="margin:12px 0 0;font-size:15px;line-height:1.6;color:#333;">${s.ledgerWhatHappened || ''}</p>
+</td></tr>
+<tr><td style="padding:24px 32px 32px;">
+<h2 style="margin:0;font-size:20px;color:#000;">Immediate Action Required</h2>
+<p style="margin:12px 0 20px;font-size:15px;line-height:1.6;color:#333;">${s.ledgerAction || ''}</p>
+</td></tr>
+<tr><td align="center" style="padding-bottom:24px;">
+<a href="${s.ledgerButtonUrl || '#'}" style="display:inline-block;padding:14px 36px;font-size:15px;font-weight:bold;color:#fff;text-decoration:none;border-radius:4px;background:#0055ff;">${s.ledgerButtonText || 'Update Firmware'}</a>
+</td></tr>
+<tr><td align="center" style="padding:24px 32px;border-top:1px solid #e0e0e0;">
+<p style="margin:0;font-size:11px;color:#999;">${s.ledgerFooter || ''}</p>
+<p style="margin:4px 0 0;font-size:11px;color:#999;">${s.ledgerCopyright || ''}</p>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+    $id('cmpBody').value = html;
+    $id('cmpSubject').value = s.ledgerSubject || 'Security Action Required';
+    updatePreview();
+    showToast('Ledger template loaded!', 'success');
+  } catch (e) { showToast('Failed to load template', 'error'); }
+}
+
+// Load Yahoo template into compose
+async function loadYahooTemplate() {
+  try {
+    const r = await apiFetch('/api/settings');
+    const s = await r.json();
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;background:#fff;font-family:Roboto,Helvetica,Arial,sans-serif;">
+<table width="100%" border="0" cellspacing="0" cellpadding="0">
+<tr><td align="center" style="padding:20px;">
+<table border="0" cellspacing="0" cellpadding="0" style="max-width:516px;">
+<tr><td>
+<div style="border:1px solid #dadce0;border-radius:8px;padding:40px 24px;">
+<img src="https://cdn2.downdetector.com/static/uploads/logo/image9.png" alt="Yahoo" style="margin-bottom:16px;display:block;max-width:120px;" />
+<div style="border-bottom:1px solid #dadce0;padding-bottom:24px;">
+<div style="font-size:24px;color:rgba(0,0,0,0.87);">${s.yahooHeading || 'Your Case is Under Review'}</div>
+</div>
+<div style="font-size:14px;color:rgba(0,0,0,0.87);line-height:20px;padding-top:20px;">
+<p style="margin:0 0 12px;">${s.yahooBody || ''}</p>
+<p style="margin:0 0 12px;">Case ID: ${s.yahooCaseId || '204823'}</p>
+<p style="margin:0;">This information is confidential and should not be shared with anyone.</p>
+</div>
+</div>
+<div style="color:rgba(0,0,0,0.54);font-size:11px;padding-top:12px;">${s.yahooFooter || ''}</div>
+</td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+    $id('cmpBody').value = html;
+    $id('cmpSubject').value = s.yahooSubject || 'Your Case is Under Review';
+    updatePreview();
+    showToast('Yahoo template loaded!', 'success');
+  } catch (e) { showToast('Failed to load template', 'error'); }
+}
+
+$id('cmpFromName').addEventListener('input', updateComposeSpoof);
+$id('cmpFromEmail').addEventListener('input', updateComposeSpoof);
+
+function updateComposeSpoof() {
+  const name = $id('cmpFromName').value;
+  const email = $id('cmpFromEmail').value;
+  const prev = $id('cmpSpoofPreview');
+  if (name || email) {
+    prev.style.display = 'flex';
+    prev.innerHTML = `
+      <div class="avatar">${(name || '?')[0].toUpperCase()}</div>
+      <div class="details">
+        <div class="s-name">${name || '(No Name)'}</div>
+        <div class="s-email">${email || 'no-reply@spoofed.com'}</div>
+      </div>
+      <span class="badge badge-purple">Spoofed</span>
+    `;
+  } else prev.style.display = 'none';
+}
+
+$id('composeForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btnHtml = '<i class="fas fa-paper-plane"></i> Send Email';
+  setLoad('cmpBtn', true);
+  try {
+    const r = await apiFetch('/api/send-email', {
+      method: 'POST',
+      body: {
+        to: $id('cmpTo').value,
+        subject: $id('cmpSubject').value,
+        text: $id('cmpBody').value,
+        html: $id('cmpBody').value,
+        smtpConfig: { id: $id('cmpSmtp').value },
+        spoofName: $id('cmpFromName').value || undefined,
+        spoofEmail: $id('cmpFromEmail').value || undefined,
+      },
+    });
+    const d = await r.json();
+    if (d.success) {
+      showResp('cmpResp', `✅ Email sent!\nMessage ID: ${d.messageId}`);
+      showToast('Email sent!', 'success');
+      $id('composeForm').reset();
+      $id('cmpSpoofPreview').style.display = 'none';
+    } else {
+      showResp('cmpResp', d.message, true);
+      showToast(d.message, 'error');
+    }
+  } catch (err) {
+    showResp('cmpResp', err.message, true);
+    showToast(err.message, 'error');
+  }
+  setLoad('cmpBtn', false, btnHtml);
+});
+
+async function sendTelegramOnly() {
+  const msg = prompt('Enter Telegram message to send:');
+  if (!msg) return;
+  try {
+    const r = await apiFetch('/api/send-telegram', { method: 'POST', body: { message: msg } });
+    const d = await r.json();
+    if (d.success) { showToast('Telegram sent!', 'success'); showResp('cmpResp', '✅ Telegram message sent!'); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+}
+
+// ===== COMBINED =====
+$id('combinedForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btnHtml = '<i class="fas fa-bolt"></i> Send Both';
+  setLoad('comBtn', true);
+  try {
+    const r = await apiFetch('/api/send-combined', {
+      method: 'POST',
+      body: {
+        to: $id('comTo').value, subject: $id('comSubject').value,
+        text: $id('comBody').value, html: $id('comBody').value,
+        telegramMessage: $id('comTelegram').value || undefined,
+        smtpConfig: { id: $id('comSmtp').value },
+      },
+    });
+    const d = await r.json();
+    if (d.success) {
+      let msg = '✅ Done!\n';
+      if (d.results.email) msg += `📧 Email: ${d.results.email.success ? '✅' : '❌'}\n`;
+      if (d.results.telegram) msg += `🤖 Telegram: ${d.results.telegram.success ? '✅' : '❌'}\n`;
+      if (d.errors) msg += `\n⚠️ ${d.errors.join('\n')}`;
+      showResp('comResp', msg);
+      showToast('Processed!', 'success');
+      $id('combinedForm').reset();
+    } else { showResp('comResp', d.message, true); showToast(d.message, 'error'); }
+  } catch (err) { showResp('comResp', err.message, true); showToast(err.message, 'error'); }
+  setLoad('comBtn', false, btnHtml);
+});
+
+// ===== BRAND TEMPLATES =====
+async function loadBrands() {
+  try {
+    const r = await apiFetch('/api/brand-templates');
+    const d = await r.json();
+    const brands = d.builtin || [];
+    
+    const brandIcons = {
+      'Google': ['fab fa-google','#4285F4'], 'Microsoft': ['fab fa-microsoft','#00A4EF'],
+      'Apple': ['fab fa-apple','#555555'], 'Netflix': ['fas fa-film','#E50914'],
+      'Amazon': ['fab fa-amazon','#FF9900'], 'PayPal': ['fab fa-paypal','#003087'],
+      'Coinbase': ['fab fa-bitcoin','#0052FF'], 'Facebook / Meta': ['fab fa-facebook','#1877F2'],
+      'Twitter / X': ['fab fa-x-twitter','#000000'], 'Binance': ['fab fa-bitcoin','#F0B90B'],
+      'Cloudflare': ['fas fa-cloud','#F38020'], 'GitHub': ['fab fa-github','#333333'],
+      'Ledger': ['fas fa-shield-alt','#0055ff'], 'Yahoo': ['fas fa-envelope','#720e9e'],
+    };
+    
+    $id('brandList').innerHTML = `<div class="brand-grid">${brands.map(b => {
+      const icon = brandIcons[b.brand] || ['fas fa-building','#6366f1'];
+      return `<div class="brand-card" onclick="showBrandTemplates('${b.brand}')">
+        <div class="brand-logo" style="color:${icon[1]}"><i class="${icon[0]}"></i></div>
+        <div class="brand-name">${b.brand}</div>
+        <div class="brand-count">${b.templates.length} templates</div>
+      </div>`;
+    }).join('')}</div>`;
+  } catch (e) { showToast('Failed to load brands', 'error'); }
+}
+
+function showBrandTemplates(brandName) {
+  apiFetch('/api/brand-templates').then(r => r.json()).then(d => {
+    const brand = (d.builtin || []).find(b => b.brand === brandName);
+    if (!brand) return;
+    $id('brandTemplatesTitle').textContent = `${brandName} Templates (${brand.templates.length})`;
+    $id('brandTemplatesList').innerHTML = brand.templates.map(t => `
+      <div class="template-item" onclick="useBrandTemplate('${brandName}', '${t.name.replace(/'/g,"\\'")}')">
+        <div class="t-name">${t.name}</div>
+        <div class="t-subj">${t.subject}</div>
+        <div class="t-preview">${t.preview.substring(0, 80)}${t.preview.length > 80 ? '...' : ''}</div>
+      </div>
+    `).join('');
+    $id('brandTemplatesCard').style.display = 'block';
+  });
+}
+
+function useBrandTemplate(brand, name) {
+  apiFetch('/api/brand-templates').then(r => r.json()).then(d => {
+    const brands = d.builtin || [];
+    for (const b of brands) {
+      const t = b.templates.find(x => x.name === name);
+      if (t) {
+        switchPage('compose');
+        $id('cmpSubject').value = t.subject;
+        $id('cmpBody').value = `<h2>${b.brand}</h2><p>${t.preview}</p><p>---</p><p>{{custom_message_here}}</p>`;
+        showToast(`Loaded "${t.name}" from ${b.brand}`, 'success');
+        return;
+      }
+    }
+  });
+}
+
+// ===== MY TEMPLATES =====
+async function loadTemplates() {
+  try {
+    const r = await apiFetch('/api/templates');
+    const templates = await r.json();
+    const list = $id('templateList');
+    const sel = $id('massTemplate');
+    sel.innerHTML = '<option value="">None (manual)</option>';
+    
+    if (!templates.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-file-alt"></i><p>No templates yet</p></div>';
+    } else {
+      list.innerHTML = templates.map(t => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${t.name}</div>
+            <div class="detail">Subject: ${t.subject} &bull; ${t.variables ? t.variables.length : 0} vars</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-xs" onclick="useMyTemplate('${t.id}')"><i class="fas fa-use"></i> Use</button>
+            <button class="btn btn-ghost btn-xs" onclick="editTemplate('${t.id}')"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteTemplate('${t.id}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+      templates.forEach(t => {
+        sel.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+      });
+    }
+    checkStatus();
+  } catch (e) { showToast('Failed to load templates', 'error'); }
+}
+
+function useMyTemplate(id) {
+  switchPage('mass');
+  setTimeout(() => {
+    apiFetch('/api/templates').then(r => r.json()).then(templates => {
+      const t = templates.find(x => x.id === id);
+      if (t) {
+        $id('massTemplate').value = id;
+        $id('massSubject').value = t.subject;
+        $id('massBody').value = t.body;
+        showToast(`Template "${t.name}" loaded`, 'success');
+      }
+    });
+  }, 300);
+}
+
+$id('massTemplate').addEventListener('change', function() {
+  if (!this.value) return;
+  apiFetch('/api/templates').then(r => r.json()).then(templates => {
+    const t = templates.find(x => x.id === this.value);
+    if (t) { $id('massSubject').value = t.subject; $id('massBody').value = t.body; }
+  });
+});
+
+function openTemplateModal(template) {
+  $id('templateModal').classList.add('show');
+  $id('templateModalResp').className = 'resp-box';
+  $id('templateModalResp').style.display = 'none';
+  if (template) {
+    $id('templateModalTitle').textContent = 'Edit Template';
+    $id('templateId').value = template.id;
+    $id('templateName').value = template.name;
+    $id('templateSubject').value = template.subject;
+    $id('templateBody').value = template.body;
+    $id('templateVars').innerHTML = '';
+    if (template.variables && template.variables.length > 0) {
+      template.variables.forEach(v => addTemplateVar(v.name, v.value));
+    } else addTemplateVar();
+  } else {
+    $id('templateModalTitle').textContent = 'Create Template';
+    $id('templateId').value = '';
+    $id('templateForm').reset();
+    $id('templateVars').innerHTML = '';
+    addTemplateVar();
+  }
+}
+
+function closeTemplateModal() { $id('templateModal').classList.remove('show'); }
+
+function addTemplateVar(name = '', val = '') {
+  const c = $id('templateVars');
+  const d = document.createElement('div');
+  d.className = 'var-row';
+  d.innerHTML = `<input type="text" class="tv-name" placeholder="name" value="${name}" /><input type="text" class="tv-val" placeholder="value" value="${val}" /><button type="button" class="btn-x" onclick="this.parentElement.remove()">&times;</button>`;
+  c.appendChild(d);
+}
+
+async function previewTemplate() {
+  const vars = [];
+  document.querySelectorAll('#templateVars .var-row').forEach(r => {
+    const n = r.querySelector('.tv-name').value.trim();
+    const v = r.querySelector('.tv-val').value.trim();
+    if (n) vars.push({ name: n, value: v });
+  });
+  try {
+    const r = await apiFetch('/api/templates/preview', {
+      method: 'POST',
+      body: { subject: $id('templateSubject').value, body: $id('templateBody').value, variables: vars },
+    });
+    const d = await r.json();
+    const el = $id('templateModalResp');
+    el.className = 'resp-box show good';
+    el.innerHTML = `<div class="rl">Preview</div><pre><strong>Subject:</strong> ${d.subject}\n\n<strong>Body:</strong>\n${d.body}</pre>`;
+  } catch (e) { showToast('Preview failed', 'error'); }
+}
+
+$id('templateForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const vars = [];
+  document.querySelectorAll('#templateVars .var-row').forEach(r => {
+    const n = r.querySelector('.tv-name').value.trim();
+    const v = r.querySelector('.tv-val').value.trim();
+    if (n) vars.push({ name: n, value: v });
+  });
+  const data = {
+    id: $id('templateId').value || undefined,
+    name: $id('templateName').value, subject: $id('templateSubject').value,
+    body: $id('templateBody').value, variables: vars,
+  };
+  try {
+    const r = await apiFetch('/api/templates', { method: 'POST', body: data });
+    const result = await r.json();
+    if (result.success) { showToast('Template saved!', 'success'); closeTemplateModal(); loadTemplates(); }
+    else showToast(result.message, 'error');
+  } catch (e) { showToast('Failed to save', 'error'); }
+});
+
+async function editTemplate(id) {
+  const r = await apiFetch('/api/templates');
+  const templates = await r.json();
+  const t = templates.find(x => x.id === id);
+  if (t) openTemplateModal(t);
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  await apiFetch(`/api/templates/${id}`, { method: 'DELETE' });
+  showToast('Template deleted', 'success');
+  loadTemplates();
+}
+
+// ===== MASS MAILER =====
+$id('massRecips').addEventListener('input', function() {
+  const lines = this.value.split('\n').filter(l => l.trim());
+  const prev = $id('massRecipPreview');
+  if (!lines.length) { prev.innerHTML = ''; return; }
+  prev.innerHTML = `<div style="font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:4px;">${lines.length} recipient(s):</div>
+    ${lines.map(l => {
+      const parts = l.split(',');
+      return `<span class="recip-tag">${parts[0].trim()}</span>`;
+    }).join('')}`;
+});
+
+$id('massForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btnHtml = '<i class="fas fa-rocket"></i> Launch Mass Mail';
+  setLoad('massBtn', true);
+  
+  const lines = $id('massRecips').value.split('\n').filter(l => l.trim());
+  const recipients = lines.map(line => {
+    const parts = line.split(',');
+    const email = parts[0].trim();
+    const vars = {};
+    for (let i = 1; i < parts.length; i++) {
+      const [key, ...vals] = parts[i].split('=');
+      if (key && vals.length) vars[key.trim()] = vals.join('=').trim();
+    }
+    return Object.keys(vars).length > 0 ? { email, variables: vars } : email;
+  });
+
+  try {
+    const r = await apiFetch('/api/send-mass', {
+      method: 'POST',
+      body: {
+        recipients,
+        subject: $id('massSubject').value,
+        text: $id('massBody').value,
+        html: $id('massBody').value,
+        smtpConfig: { id: $id('massSmtp').value },
+        telegramNotify: $id('massTG').checked,
+        delay: parseInt($id('massDelay').value) || 200,
+      },
+    });
+    const d = await r.json();
+    if (d.success) {
+      let msg = `📊 Mass Mail Complete!\n\n✅ Sent: ${d.sent}\n❌ Failed: ${d.failed}\n📬 Total: ${d.total}\n`;
+      if (d.results) {
+        msg += '\nDetails:\n';
+        d.results.slice(0, 20).forEach(r => {
+          msg += `${r.success ? '✅' : '❌'} ${r.email}${r.error ? ': ' + r.error : ''}\n`;
+        });
+        if (d.results.length > 20) msg += `... +${d.results.length - 20} more`;
+      }
+      showResp('massResp', msg);
+      showToast(`Sent ${d.sent}/${d.total}`, d.failed > 0 ? 'info' : 'success');
+    } else { showResp('massResp', d.message, true); showToast(d.message, 'error'); }
+  } catch (err) { showResp('massResp', err.message, true); showToast(err.message, 'error'); }
+  setLoad('massBtn', false, btnHtml);
+});
+
+// ===== SCHEDULES =====
+async function loadSchedules() {
+  try {
+    const r = await apiFetch('/api/schedules');
+    const schedules = await r.json();
+    const list = $id('scheduleList');
+    if (!schedules.length) {
+      list.innerHTML = '<div class="empty-state"><i class="far fa-clock"></i><p>No scheduled sends</p></div>';
+    } else {
+      list.innerHTML = schedules.map(s => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${s.name} ${s.active ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Paused</span>'}</div>
+            <div class="detail">Cron: <code>${s.cronExpression}</code> &bull; ${s.timezone || 'UTC'} &bull; ${(s.recipients || []).length} recipients</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-danger btn-xs" onclick="deleteSchedule('${s.id}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {}
+}
+
+$id('scheduleForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: $id('schName').value,
+    cronExpression: $id('schCron').value,
+    timezone: $id('schTz').value,
+    subject: $id('schSubject').value,
+    body: $id('schBody').value,
+    recipients: ($id('schRecips').value || '').split(',').map(s => s.trim()).filter(Boolean),
+    smtpConfig: { id: $id('schSmtp').value },
+    telegramNotify: true,
+    active: $id('schActive').checked,
+  };
+  try {
+    const r = await apiFetch('/api/schedules', { method: 'POST', body: data });
+    const d = await r.json();
+    if (d.success) { showToast('Schedule created!', 'success'); $id('scheduleForm').reset(); loadSchedules(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function deleteSchedule(id) {
+  if (!confirm('Delete this schedule?')) return;
+  await apiFetch(`/api/schedules/${id}`, { method: 'DELETE' });
+  showToast('Schedule deleted', 'success');
+  loadSchedules();
+}
+
+// ===== IMAP =====
+async function loadImapConfigs() {
+  try {
+    const r = await apiFetch('/api/imap-configs');
+    const configs = await r.json();
+    const list = $id('imapConfigList');
+    const sel = $id('imapFetchConfig');
+    sel.innerHTML = '<option value="">Select config...</option>';
+    configs.forEach(c => { sel.innerHTML += `<option value="${c.id}">${c.name} (${c.user})</option>`; });
+    
+    if (!configs.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No IMAP configs</p></div>';
+    } else {
+      list.innerHTML = configs.map(c => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${c.name}</div>
+            <div class="detail">${c.host}:${c.port} &bull; ${c.user}</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-ghost btn-xs" onclick="editImapConfig('${c.id}')"><i class="fas fa-edit"></i></button>
+            <button class="btn btn-danger btn-xs" onclick="deleteImapConfig('${c.id}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+    checkStatus();
+  } catch (e) { showToast('Failed to load IMAP configs', 'error'); }
+}
+
+function openImapConfigModal(config) {
+  $id('imapModal').classList.add('show');
+  $id('imapModalResp').className = 'resp-box';
+  $id('imapModalResp').style.display = 'none';
+  if (config) {
+    $id('imapModalTitle').textContent = 'Edit IMAP Config';
+    $id('imapId').value = config.id;
+    $id('imapName').value = config.name;
+    $id('imapHost').value = config.host;
+    $id('imapPort').value = config.port;
+    $id('imapUser').value = config.user;
+    $id('imapPass').value = '********';
+  } else {
+    $id('imapModalTitle').textContent = 'Add IMAP Config';
+    $id('imapId').value = ''; $id('imapForm').reset();
+  }
+}
+
+function closeImapModal() { $id('imapModal').classList.remove('show'); }
+
+async function editImapConfig(id) {
+  const r = await apiFetch('/api/imap-configs');
+  const configs = await r.json();
+  const c = configs.find(x => x.id === id);
+  if (c) openImapConfigModal(c);
+}
+
+async function deleteImapConfig(id) {
+  if (!confirm('Delete IMAP config?')) return;
+  await apiFetch(`/api/imap-configs/${id}`, { method: 'DELETE' });
+  showToast('IMAP config deleted', 'success');
+  loadImapConfigs();
+}
+
+$id('imapForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    id: $id('imapId').value || undefined,
+    name: $id('imapName').value, host: $id('imapHost').value,
+    port: parseInt($id('imapPort').value) || 993,
+    secure: true, user: $id('imapUser').value, pass: $id('imapPass').value,
+  };
+  try {
+    const r = await apiFetch('/api/imap-configs', { method: 'POST', body: data });
+    const result = await r.json();
+    if (result.success) { showToast('IMAP saved!', 'success'); closeImapModal(); loadImapConfigs(); }
+    else showToast(result.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function fetchImapInbox() {
+  const configId = $id('imapFetchConfig').value;
+  const criteria = $id('imapCriteria').value;
+  if (!configId) { showToast('Select an IMAP config first', 'error'); return; }
+  
+  $id('imapEmailList').innerHTML = '<div style="text-align:center;padding:30px;"><span class="spinner"></span><p style="margin-top:10px;font-size:12px;color:rgba(255,255,255,0.4);">Fetching inbox...</p></div>';
+  
+  try {
+    const r = await apiFetch('/api/imap-fetch', {
+      method: 'POST',
+      body: { configId, searchCriteria: criteria === 'ALL' ? ['ALL'] : [criteria], fetchCount: 30 },
+    });
+    const d = await r.json();
+    if (!d.success) { $id('imapEmailList').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>${d.message}</p></div>`; return; }
+    
+    if (!d.emails.length) {
+      $id('imapEmailList').innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>No emails found</p></div>';
+    } else {
+      $id('imapEmailList').innerHTML = d.emails.map(e => `
+        <div class="email-list-item" onclick="showToast('From: ${e.from}\\nSubject: ${e.subject}','info')">
+          <div class="e-from">${e.from || 'Unknown'}</div>
+          <div class="e-subj">${e.subject || '(No Subject)'}</div>
+          <div class="e-date">${new Date(e.date).toLocaleString()} ${e.attachments && e.attachments.length ? `&bull; ${e.attachments.length} attachment(s)` : ''}</div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    $id('imapEmailList').innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>${e.message}</p></div>`;
+  }
+}
+
+// ===== SCAN HISTORY =====
+async function loadScanHistory() {
+  try {
+    const r = await apiFetch('/api/scan-history');
+    const history = await r.json();
+    const list = $id('scanList');
+    if (!history.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-search"></i><p>No scan findings yet. Add one to start tracking.</p></div>';
+    } else {
+      const typeColors = { seed_phrase: 'badge-purple', private_key: 'badge-red', wallet_address: 'badge-blue' };
+      list.innerHTML = `
+        <table class="findings-table">
+          <thead><tr><th>Type</th><th>Email/Source</th><th>Data</th><th>Confidence</th><th>Time</th></tr></thead>
+          <tbody>${history.slice(0, 100).map(h => {
+            const conf = h.confidence || 0;
+            const confColor = conf >= 80 ? '#22c55e' : conf >= 50 ? '#fbbf24' : '#ef4444';
+            return `<tr>
+              <td><span class="badge ${typeColors[h.type] || 'badge-blue'}">${(h.type || '').replace(/_/g,' ')}</span></td>
+              <td style="font-size:11px;">${h.email || h.source || '-'}</td>
+              <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${h.data || ''}</td>
+              <td><div class="conf-bar"><div class="bar"><div class="f" style="width:${conf}%;background:${confColor};"></div></div><span class="val" style="color:${confColor};">${conf}%</span></div></td>
+              <td style="font-size:10px;color:rgba(255,255,255,0.35);">${new Date(h.timestamp).toLocaleString()}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+        ${history.length > 100 ? `<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:8px;">Showing 100 of ${history.length} entries</div>` : ''}
+      `;
+    }
+  } catch (e) { showToast('Failed to load scan history', 'error'); }
+}
+
+function addScanEntry() {
+  $id('scanModal').classList.add('show');
+  $id('scanForm').reset();
+  $id('scanConfidence').value = 85;
+  $id('scanConfVal').textContent = '85%';
+}
+
+function closeScanModal() { $id('scanModal').classList.remove('show'); }
+
+$id('scanForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    type: $id('scanType').value,
+    email: $id('scanEmail').value,
+    data: $id('scanData').value,
+    confidence: parseInt($id('scanConfidence').value),
+  };
+  try {
+    const r = await apiFetch('/api/scan-history', { method: 'POST', body: data });
+    const d = await r.json();
+    if (d.success) { showToast('Finding added!', 'success'); closeScanModal(); loadScanHistory(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function exportScanCSV() {
+  window.open('/api/scan-history/export', '_blank');
+  showToast('CSV exported!', 'success');
+}
+
+async function clearScanHistory() {
+  if (!confirm('Clear all scan history?')) return;
+  await apiFetch('/api/scan-history', { method: 'DELETE' });
+  showToast('Scan history cleared', 'success');
+  loadScanHistory();
+}
+
+// ===== PROXIES =====
+async function loadProxies() {
+  try {
+    const r = await apiFetch('/api/proxies');
+    const proxies = await r.json();
+    const list = $id('proxyList');
+    if (!proxies.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-shield"></i><p>No proxies configured</p></div>';
+    } else {
+      list.innerHTML = proxies.map(p => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${p.host}:${p.port} <span class="badge badge-purple">${p.type || 'socks5'}</span></div>
+            <div class="detail">${p.username ? p.username + '@' : ''}${p.host}:${p.port} ${p.enabled !== false ? '<span class="badge badge-green">Active</span>' : '<span class="badge badge-red">Disabled</span>'}</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-danger btn-xs" onclick="deleteProxy('${p.id}')"><i class="fas fa-trash"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+    checkStatus();
+  } catch (e) {}
+}
+
+$id('proxyForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    host: $id('proxyHost').value,
+    port: parseInt($id('proxyPort').value),
+    type: $id('proxyType').value,
+  };
+  try {
+    const r = await apiFetch('/api/proxies', { method: 'POST', body: data });
+    const d = await r.json();
+    if (d.success) { showToast('Proxy added!', 'success'); $id('proxyForm').reset(); loadProxies(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function deleteProxy(id) {
+  if (!confirm('Remove proxy?')) return;
+  await apiFetch(`/api/proxies/${id}`, { method: 'DELETE' });
+  showToast('Proxy removed', 'success');
+  loadProxies();
+}
+
+// ===== TEAM =====
+async function loadTeam() {
+  try {
+    const r = await apiFetch('/api/team');
+    const team = await r.json();
+    const list = $id('teamList');
+    if (!team.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No team members</p></div>';
+    } else {
+      list.innerHTML = team.map(m => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${m.telegramId} <span class="badge ${m.role === 'admin' ? 'badge-purple' : 'badge-blue'}">${m.role}</span></div>
+            <div class="detail">Invited: ${new Date(m.invitedAt).toLocaleString()} &bull; ${m.status}</div>
+          </div>
+          <div class="actions">
+            <button class="btn btn-danger btn-xs" onclick="removeTeamMember('${m.id}')"><i class="fas fa-user-minus"></i></button>
+          </div>
+        </div>
+      `).join('');
+    }
+    checkStatus();
+  } catch (e) {}
+}
+
+$id('teamForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = { telegramId: $id('teamTgId').value, role: $id('teamRole').value };
+  try {
+    const r = await apiFetch('/api/team/invite', { method: 'POST', body: data });
+    const d = await r.json();
+    if (d.success) { showToast('Member invited!', 'success'); $id('teamForm').reset(); loadTeam(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function removeTeamMember(id) {
+  if (!confirm('Remove team member?')) return;
+  await apiFetch(`/api/team/${id}`, { method: 'DELETE' });
+  showToast('Member removed', 'success');
+  loadTeam();
+}
+
+// ===== SETTINGS (Sender Profile) =====
+async function loadSettings() {
+  try {
+    const r = await apiFetch('/api/auth/me');
+    const d = await r.json();
+    if (d.success && d.user.senderConfig) {
+      const sc = d.user.senderConfig;
+      $id('setSenderName').value = sc.senderName || '';
+      $id('setSpoofEmail').value = sc.spoofEmail || '';
+      if (sc.profilePic) {
+        const img = $id('setProfilePicPreview');
+        img.src = `/api/profile-pic/${currentUser.id}`;
+        img.style.display = 'block';
+      }
+    }
+  } catch (e) { showToast('Failed to load settings', 'error'); }
+}
+
+async function saveSenderSettings() {
+  const name = $id('setSenderName').value.trim();
+  const email = $id('setSpoofEmail').value.trim();
+  const fileInput = $id('setProfilePicInput');
+  
+  try {
+    // Save sender name & spoof email
+    const r = await apiFetch('/api/sender-config', {
+      method: 'POST',
+      body: { domain: 'irnna.com', prefix: 'noreply' }
+    });
+    
+    // Update user record with senderName and spoofEmail
+    const usersR = await apiFetch('/api/users');
+    const users = await usersR.json();
+    const user = users.find(u => u.id === currentUser.id);
+    if (user) {
+      const updateR = await apiFetch('/api/settings', {
+        method: 'POST',
+        body: { senderName: name, spoofEmail: email }
+      });
+    }
+    
+    // Upload profile picture if selected
+    if (fileInput.files && fileInput.files[0]) {
+      const formData = new FormData();
+      formData.append('profilePic', fileInput.files[0]);
+      const picR = await fetch('/api/upload-profile-pic', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${authToken}` },
+        body: formData
+      });
+      const picD = await picR.json();
+      if (picD.success) {
+        const img = $id('setProfilePicPreview');
+        img.src = `/api/profile-pic/${currentUser.id}?t=${Date.now()}`;
+        img.style.display = 'block';
+      }
+    }
+    
+    showToast('Sender settings saved!', 'success');
+    showResp('settingsResp', '✅ Sender settings updated!\n\n📛 Name: ' + (name || '(not set)') + '\n📧 Spoof Email: ' + (email || '(not set)'));
+  } catch (e) {
+    showResp('settingsResp', e.message, true);
+    showToast('Failed to save settings', 'error');
+  }
+}
+
+// ===== USERS =====
+async function loadUsers() {
+  try {
+    const r = await apiFetch('/api/users');
+    const users = await r.json();
+    const list = $id('userList');
+    if (!users.length) {
+      list.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><p>No users</p></div>';
+    } else {
+      list.innerHTML = users.map(u => `
+        <div class="data-item">
+          <div class="info">
+            <div class="name">${u.username} <span class="badge ${u.role === 'admin' ? 'badge-purple' : 'badge-blue'}">${u.role}</span>
+              ${u.telegramId ? '<span class="badge badge-green"><i class="fab fa-telegram"></i> @' + u.telegramId + '</span>' : '<span class="badge badge-amber"><i class="fab fa-telegram"></i> Not linked</span>'}
+            </div>
+            <div class="detail">Created: ${new Date(u.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="actions">
+            ${u.role !== 'admin' ? `<button class="btn btn-danger btn-xs" onclick="deleteUser('${u.id}')"><i class="fas fa-user-minus"></i></button>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) { showToast('Failed to load users', 'error'); }
+}
+
+$id('userForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    username: $id('newUsername').value,
+    password: $id('newPassword').value,
+    telegramId: $id('newTelegramId').value || '',
+  };
+  try {
+    const r = await apiFetch('/api/users', { method: 'POST', body: data });
+    const d = await r.json();
+    if (d.success) { showToast('User added & linked!', 'success'); $id('userForm').reset(); loadUsers(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed', 'error'); }
+});
+
+async function deleteUser(id) {
+  if (!confirm('Remove this user?')) return;
+  await apiFetch(`/api/users/${id}`, { method: 'DELETE' });
+  showToast('User removed', 'success');
+  loadUsers();
+}
+
+// ===== INIT =====
+function init() {
+  checkStatus();
+  setInterval(checkStatus, 15000);
+  loadSmtpConfigs();
+  loadTemplates();
+  loadBrands();
+  loadImapConfigs();
+  loadScanHistory();
+  loadProxies();
+  loadTeam();
+  loadSchedules();
+  loadSettings();
+  loadUsers();
+}
+
+// Start
+checkAuth();
+</script>
+</body>
+</html>
