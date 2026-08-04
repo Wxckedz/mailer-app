@@ -932,6 +932,16 @@
           </div>
           <button class="btn btn-primary btn-sm" onclick="saveSenderConfig()"><i class="fas fa-save"></i> Save Sender Config</button>
         </div>
+        <div class="card" id="sharedSmtpCard" style="display:none;">
+          <div class="card-header">
+            <div class="card-icon green"><i class="fas fa-globe"></i></div>
+            <div><h3>Shared SMTP Management</h3><p>Admin-only: Add SMTP servers available to all users. Default sender: noreply@domain</p></div>
+          </div>
+          <div class="btn-group" style="margin-bottom:10px;">
+            <button class="btn btn-success btn-sm" onclick="openSharedSmtpModal()"><i class="fas fa-plus"></i> Add Shared SMTP</button>
+          </div>
+          <div id="sharedSmtpList"><div class="empty-state"><i class="fas fa-globe"></i><p>No shared SMTP configs</p></div></div>
+        </div>
         <div class="card">
           <div class="card-header">
             <div class="card-icon amber"><i class="fas fa-server"></i></div>
@@ -1148,6 +1158,59 @@
   </div>
 </div>
 
+<!-- Shared SMTP Modal (Admin) -->
+<div class="modal-overlay" id="sharedSmtpModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="sharedSmtpModalTitle">Add Shared SMTP</h3>
+      <button class="modal-close" onclick="closeSharedSmtpModal()">&times;</button>
+    </div>
+    <form id="sharedSmtpForm">
+      <input type="hidden" id="sharedSmtpId" />
+      <div class="form-group">
+        <label>Config Name</label>
+        <input type="text" id="sharedSmtpName" placeholder="e.g. mydomain.com (Shared)" required />
+      </div>
+      <div class="form-group">
+        <label>Domain (for default sender: noreply@domain)</label>
+        <input type="text" id="sharedSmtpDomain" placeholder="mydomain.com" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>SMTP Host</label>
+          <input type="text" id="sharedSmtpHost" placeholder="smtp.resend.com" required />
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" id="sharedSmtpPort" placeholder="465" value="465" />
+        </div>
+      </div>
+      <div class="chk">
+        <input type="checkbox" id="sharedSmtpSecure" checked />
+        <label for="sharedSmtpSecure">Use SSL/TLS (port 465)</label>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Username / API Key</label>
+          <input type="text" id="sharedSmtpUser" placeholder="resend" required />
+        </div>
+        <div class="form-group">
+          <label>Password / API Secret</label>
+          <input type="password" id="sharedSmtpPass" placeholder="API key or password" />
+        </div>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:10px;">
+        💡 Default sender email will be <code id="sharedSmtpDefaultPreview">noreply@mydomain.com</code>
+      </div>
+      <div class="btn-group" style="margin-top:12px;">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="testSharedSmtp()"><i class="fas fa-vial"></i> Test</button>
+        <button type="submit" class="btn btn-success btn-sm" id="sharedSmtpSaveBtn"><i class="fas fa-save"></i> Save Shared SMTP</button>
+      </div>
+    </form>
+    <div class="resp-box" id="sharedSmtpModalResp"></div>
+  </div>
+</div>
+
 <!-- IMAP Config Modal -->
 <div class="modal-overlay" id="imapModal">
   <div class="modal">
@@ -1306,6 +1369,11 @@ function showApp() {
   document.getElementById('userAvatar').textContent = currentUser.username[0].toUpperCase();
   if (currentUser.role !== 'admin') {
     document.getElementById('usersNavBtn').style.display = 'none';
+  }
+  // Show shared SMTP management card only for admin
+  const sharedSmtpCard = document.getElementById('sharedSmtpCard');
+  if (sharedSmtpCard) {
+    sharedSmtpCard.style.display = currentUser.role === 'admin' ? 'block' : 'none';
   }
   init();
 }
@@ -1537,6 +1605,27 @@ async function loadSmtpConfigs() {
       </div>
     `).join('') : '<div class="empty-state"><i class="fas fa-server"></i><p>Shared domains available by default</p></div>';
     
+    // Render shared SMTP list in admin card
+    const sharedList = $id('sharedSmtpList');
+    if (sharedList) {
+      if (!sharedConfigs.length) {
+        sharedList.innerHTML = '<div class="empty-state"><i class="fas fa-globe"></i><p>No shared SMTP configs. Add one to make it available to all users.</p></div>';
+      } else {
+        sharedList.innerHTML = sharedConfigs.map(c => `
+          <div class="data-item">
+            <div class="info">
+              <div class="name">${c.name} <span class="badge badge-green"><i class="fas fa-globe"></i> Shared</span> <span class="badge badge-blue">noreply@${c.domain}</span></div>
+              <div class="detail">${c.host}:${c.port} &bull; ${c.user} &bull; Domain: ${c.domain}</div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-ghost btn-xs" onclick="editSharedSmtp('${c.id}')"><i class="fas fa-edit"></i></button>
+              <button class="btn btn-danger btn-xs" onclick="deleteSharedSmtp('${c.id}')"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+    
     loadSenderConfig();
     checkStatus();
   } catch (e) { showToast('Failed to load SMTP configs', 'error'); }
@@ -1702,6 +1791,100 @@ $id('smtpForm').addEventListener('submit', async (e) => {
     if (result.success) {
       showToast('SMTP saved!', 'success');
       closeSmtpModal();
+      loadSmtpConfigs();
+    } else showToast(result.message, 'error');
+  } catch (e) { showToast('Failed to save', 'error'); }
+});
+
+// ===== SHARED SMTP CONFIGS (Admin) =====
+function openSharedSmtpModal(config) {
+  $id('sharedSmtpModal').classList.add('show');
+  $id('sharedSmtpModalResp').className = 'resp-box';
+  $id('sharedSmtpModalResp').style.display = 'none';
+  if (config) {
+    $id('sharedSmtpModalTitle').textContent = 'Edit Shared SMTP';
+    $id('sharedSmtpId').value = config.id;
+    $id('sharedSmtpName').value = config.name;
+    $id('sharedSmtpDomain').value = config.domain || '';
+    $id('sharedSmtpHost').value = config.host;
+    $id('sharedSmtpPort').value = config.port;
+    $id('sharedSmtpSecure').checked = config.secure === true || config.secure === 'true';
+    $id('sharedSmtpUser').value = config.user;
+    $id('sharedSmtpPass').value = '********';
+    updateSharedSmtpDefaultPreview();
+  } else {
+    $id('sharedSmtpModalTitle').textContent = 'Add Shared SMTP';
+    $id('sharedSmtpId').value = '';
+    $id('sharedSmtpForm').reset();
+    $id('sharedSmtpSecure').checked = true;
+    $id('sharedSmtpPort').value = '465';
+    updateSharedSmtpDefaultPreview();
+  }
+}
+
+function closeSharedSmtpModal() { $id('sharedSmtpModal').classList.remove('show'); }
+
+function updateSharedSmtpDefaultPreview() {
+  const domain = $id('sharedSmtpDomain').value.trim() || 'mydomain.com';
+  const preview = $id('sharedSmtpDefaultPreview');
+  if (preview) preview.textContent = `noreply@${domain}`;
+}
+if ($id('sharedSmtpDomain')) $id('sharedSmtpDomain').addEventListener('input', updateSharedSmtpDefaultPreview);
+
+async function editSharedSmtp(id) {
+  const r = await apiFetch('/api/smtp-configs');
+  const data = await r.json();
+  const configs = data.sharedConfigs || (Array.isArray(data) ? data : []);
+  const c = configs.find(x => x.id === id);
+  if (c) openSharedSmtpModal(c);
+}
+
+async function deleteSharedSmtp(id) {
+  if (!confirm('Delete this shared SMTP config? This will remove it for ALL users.')) return;
+  try {
+    const r = await apiFetch(`/api/shared-smtp/${id}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.success) { showToast('Shared SMTP deleted', 'success'); loadSmtpConfigs(); }
+    else showToast(d.message, 'error');
+  } catch (e) { showToast('Failed to delete', 'error'); }
+}
+
+async function testSharedSmtp() {
+  const data = {
+    host: $id('sharedSmtpHost').value,
+    port: $id('sharedSmtpPort').value,
+    secure: $id('sharedSmtpSecure').checked,
+    user: $id('sharedSmtpUser').value,
+    pass: $id('sharedSmtpPass').value === '********' ? '' : $id('sharedSmtpPass').value,
+  };
+  try {
+    const r = await apiFetch('/api/smtp-test', { method: 'POST', body: data });
+    const result = await r.json();
+    const el = $id('sharedSmtpModalResp');
+    el.className = `resp-box show ${result.success ? 'good' : 'bad'}`;
+    el.innerHTML = `<div class="rl">${result.success ? 'Success' : 'Error'}</div><pre>${result.message}</pre>`;
+    if (result.success) showToast('SMTP test passed!', 'success');
+  } catch (e) { showToast('Test failed', 'error'); }
+}
+
+$id('sharedSmtpForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    id: $id('sharedSmtpId').value || undefined,
+    name: $id('sharedSmtpName').value,
+    domain: $id('sharedSmtpDomain').value.trim().toLowerCase(),
+    host: $id('sharedSmtpHost').value,
+    port: parseInt($id('sharedSmtpPort').value) || 587,
+    secure: $id('sharedSmtpSecure').checked,
+    user: $id('sharedSmtpUser').value,
+    pass: $id('sharedSmtpPass').value,
+  };
+  try {
+    const r = await apiFetch('/api/shared-smtp', { method: 'POST', body: data });
+    const result = await r.json();
+    if (result.success) {
+      showToast('Shared SMTP saved!', 'success');
+      closeSharedSmtpModal();
       loadSmtpConfigs();
     } else showToast(result.message, 'error');
   } catch (e) { showToast('Failed to save', 'error'); }

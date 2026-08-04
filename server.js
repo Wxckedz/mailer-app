@@ -7,7 +7,7 @@ const path = require('path');
 const { PORT, MAX_BODY_SIZE } = require('./src/config');
 const { readJSONSync, SMTP_CONFIGS_FILE, TEMPLATES_FILE, PROXIES_FILE } = require('./src/storage');
 const { initTelegramBot, getBot } = require('./src/telegram');
-const { loadProxies } = require('./src/smtp');
+const { loadProxies, loadSharedSmtpConfigs } = require('./src/smtp');
 const { setupErrorHandlers, checkMemory } = require('./src/memory');
 const { rateLimit } = require('./src/rateLimit');
 const apiRoutes = require('./src/api/routes');
@@ -36,6 +36,10 @@ setupErrorHandlers(app);
 async function start() {
   // Load proxies
   await loadProxies();
+
+  // Load shared SMTP configs (admin-managed, available to all users)
+  const sharedConfigs = await loadSharedSmtpConfigs();
+  console.log(`🌐 Shared SMTP domains: ${sharedConfigs.length} loaded`);
 
   // Initialize Telegram bot
   const bot = initTelegramBot();
