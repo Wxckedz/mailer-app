@@ -920,6 +920,7 @@
               <select id="senderDomain">
                 <option value="irnna.com">irnna.com</option>
                 <option value="smtp-banorte.com">smtp-banorte.com</option>
+                <option value="customersupport.work.gd">customersupport.work.gd</option>
               </select>
             </div>
             <div class="form-group">
@@ -1566,7 +1567,7 @@ async function loadSmtpConfigs() {
       if (!sel) return;
       sel.innerHTML = '<option value="">Use Default (Shared Domain)</option>';
       if (sharedConfigs.length) {
-        const sharedGroup = sharedConfigs.map(c => `<option value="${c.id}">🌐 ${c.name} (${c.domain})</option>`).join('');
+        const sharedGroup = sharedConfigs.map(c => `<option value="${c.id}">🌐 noreply@${c.domain}</option>`).join('');
         sel.innerHTML += `<optgroup label="Shared Domains">${sharedGroup}</optgroup>`;
       }
       if (userConfigs.length) {

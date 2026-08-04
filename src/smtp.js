@@ -37,7 +37,7 @@ async function loadSharedSmtpConfigs() {
 }
 
 function getSharedSmtpConfigs() {
-  if (sharedSmtpCache && sharedSmtpCache.length > 0) return sharedSmtpCache;
+  if (sharedSmtpCache !== null) return sharedSmtpCache;
   // Fallback to static config if cache not loaded yet
   return SHARED_SMTP_DOMAINS.map(c => ({ ...c, isShared: true }));
 }

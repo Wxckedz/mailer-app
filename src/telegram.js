@@ -116,7 +116,7 @@ function setupTelegramBot() {
     const data = callbackQuery.data;
     
     if (!isAllowedUser(username)) {
-      return bot.answerCallbackQuery(callbackQuery.id, { text: '🚫 Join @wxckedmailer\nContact @icyfeel to purchase', show_alert: true });
+      return bot.answerCallbackQuery(callbackQuery.id, { text: '🚫 Join @wxckedmailer\nContact @wxckedsupport to purchase', show_alert: true });
     }
     
     await bot.answerCallbackQuery(callbackQuery.id);

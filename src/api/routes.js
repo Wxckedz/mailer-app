@@ -644,8 +644,12 @@ router.post('/send-combined', requireAuth, async (req, res) => {
 
     try {
       const transporter = createTransporter(smtpConf);
+      const senderConfig = await getUserSenderConfig(req.user.id);
+      const fromName = smtpConf.spoofName || senderConfig.senderName || '';
+      const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
+      const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
       const mailOptions = {
-        from: smtpConf.user || process.env.SMTP_USER,
+        from: fromStr,
         to, subject, text,
         html: html || text,
       };

@@ -51,6 +51,20 @@ fs.ensureDirSync(DATA_DIR);
           spoofEmail: '',
           isShared: true,
           createdAt: new Date().toISOString()
+        },
+        {
+          id: 'shared_customersupport',
+          name: 'customersupport.work.gd (Shared)',
+          host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
+          port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
+          secure: true,
+          user: process.env.SHARED_SMTP_USER || 'resend',
+          pass: process.env.SHARED_SMTP_PASS || '',
+          domain: 'customersupport.work.gd',
+          spoofName: '',
+          spoofEmail: '',
+          isShared: true,
+          createdAt: new Date().toISOString()
         }
       ]);
     }
@@ -82,6 +96,20 @@ const SHARED_SMTP_DOMAINS = [
     user: process.env.SHARED_SMTP_USER || 'resend',
     pass: process.env.SHARED_SMTP_PASS || '',
     domain: 'smtp-banorte.com',
+    spoofName: '',
+    spoofEmail: '',
+    isShared: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'shared_customersupport',
+    name: 'customersupport.work.gd (Shared)',
+    host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
+    port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
+    secure: true,
+    user: process.env.SHARED_SMTP_USER || 'resend',
+    pass: process.env.SHARED_SMTP_PASS || '',
+    domain: 'customersupport.work.gd',
     spoofName: '',
     spoofEmail: '',
     isShared: true,
