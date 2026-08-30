@@ -735,6 +735,17 @@
                 <select id="massTemplate"><option value="">None (manual)</option></select>
               </div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Sender Name (spoof)</label>
+                <input type="text" id="massFromName" placeholder="e.g. Google Security" />
+              </div>
+              <div class="form-group">
+                <label>Sender Email (spoof)</label>
+                <input type="email" id="massFromEmail" placeholder="security@google.com" />
+              </div>
+            </div>
+            <div id="massSpoofPreview" class="spoof-preview" style="display:none;"></div>
             <div class="form-group">
               <label>Subject (use {{var}} for variables)</label>
               <input type="text" id="massSubject" placeholder="Hello {{name}}!" required />
@@ -1478,6 +1489,7 @@ function switchPage(page) {
   
   if (page === 'smtp' || page === 'compose' || page === 'mass' || page === 'schedules' || page === 'spoof' || page === 'settings') loadSmtpConfigs();
   if (page === 'templates' || page === 'mass') loadTemplates();
+  if (page === 'mass') loadMassSenderDefaults();
   if (page === 'brands') loadBrands();
   if (page === 'imap') loadImapConfigs();
   if (page === 'scan') loadScanHistory();
@@ -2011,6 +2023,40 @@ function updateComposeSpoof() {
   } else prev.style.display = 'none';
 }
 
+$id('massFromName').addEventListener('input', updateMassSpoof);
+$id('massFromEmail').addEventListener('input', updateMassSpoof);
+
+function updateMassSpoof() {
+  const name = $id('massFromName').value;
+  const email = $id('massFromEmail').value;
+  const prev = $id('massSpoofPreview');
+  if (name || email) {
+    prev.style.display = 'flex';
+    prev.innerHTML = `
+      <div class="avatar">${(name || '?')[0].toUpperCase()}</div>
+      <div class="details">
+        <div class="s-name">${name || '(No Name)'}</div>
+        <div class="s-email">${email || 'no-reply@spoofed.com'}</div>
+      </div>
+      <span class="badge badge-purple">Spoofed</span>
+    `;
+  } else prev.style.display = 'none';
+}
+
+// Pre-fill mass mailer sender fields with the user's saved sender config
+async function loadMassSenderDefaults() {
+  try {
+    const r = await apiFetch('/api/auth/me');
+    const d = await r.json();
+    if (d.success && d.user.senderConfig) {
+      const sc = d.user.senderConfig;
+      if (!$id('massFromName').value) $id('massFromName').value = sc.senderName || '';
+      if (!$id('massFromEmail').value) $id('massFromEmail').value = sc.spoofEmail || sc.senderEmail || '';
+      updateMassSpoof();
+    }
+  } catch (e) {}
+}
+
 $id('composeForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btnHtml = '<i class="fas fa-paper-plane"></i> Send Email';
@@ -2326,6 +2372,8 @@ $id('massForm').addEventListener('submit', async (e) => {
         text: $id('massBody').value,
         html: $id('massBody').value,
         smtpConfig: { id: $id('massSmtp').value },
+        spoofName: $id('massFromName').value || undefined,
+        spoofEmail: $id('massFromEmail').value || undefined,
         telegramNotify: $id('massTG').checked,
         delay: parseInt($id('massDelay').value) || 200,
       },

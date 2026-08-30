@@ -540,7 +540,7 @@ router.post('/send-email', requireAuth, async (req, res) => {
 // ============ API: MASS MAILER ============
 router.post('/send-mass', requireAuth, async (req, res) => {
   try {
-    const { recipients, subject, text, html, smtpConfig, telegramNotify, delay = 100 } = req.body;
+    const { recipients, subject, text, html, smtpConfig, spoofName, spoofEmail, telegramNotify, delay = 100 } = req.body;
     
     if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
       return res.status(400).json({ success: false, message: 'Recipients array is required' });
@@ -553,6 +553,9 @@ router.post('/send-mass', requireAuth, async (req, res) => {
     const senderConfig = await getUserSenderConfig(req.user.id);
 
     const transporter = createTransporter(smtpConf);
+    const fromName = spoofName || smtpConf.spoofName || senderConfig.senderName || '';
+    const fromEmail = spoofEmail || smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
+    const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
     const results = [];
     let sent = 0, failed = 0;
 
@@ -574,7 +577,7 @@ router.post('/send-mass', requireAuth, async (req, res) => {
 
       try {
         const mailOptions = {
-          from: smtpConf.spoofEmail ? `"${smtpConf.spoofName || senderConfig.senderName || ''}" <${smtpConf.spoofEmail}>` : (smtpConf.user || process.env.SMTP_USER),
+          from: fromStr,
           to: email,
           subject: processedSubject,
           text: processedText,
