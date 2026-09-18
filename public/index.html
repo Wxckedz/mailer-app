@@ -683,14 +683,20 @@
         left: 50%; top: auto; bottom: 8px;
         transform: translateX(-50%);
         width: auto;
+        max-width: calc(100vw - 24px);
+        overflow-x: auto;
+        overflow-y: hidden;
         border-left: 1px solid var(--line);
         border-top: 1px solid var(--line);
         border-radius: 22px;
         padding: 8px 10px;
         gap: 6px;
         box-shadow: 0 16px 40px rgba(0,0,0,.4);
+        -webkit-overflow-scrolling: touch;
       }
-      .bottom-nav button { width: 56px; height: 52px; border-radius: 14px; }
+      .bottom-nav::-webkit-scrollbar { display: none; }
+      .bottom-nav { -ms-overflow-style: none; scrollbar-width: none; }
+      .bottom-nav button { width: 56px; min-width: 56px; height: 52px; border-radius: 14px; flex-shrink: 0; }
       .bottom-nav button span { font-size: 10px; }
       .bottom-nav button svg { width: 20px; height: 20px; }
       .bottom-nav button:hover::after { display: none; }
