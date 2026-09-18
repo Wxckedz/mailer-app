@@ -440,6 +440,7 @@ const CID_FILES = {
   metlogo: path.join(__dirname, '..', 'templates', 'm.jpg'),
   metlogo2: path.join(__dirname, '..', 'templates', 'm.jpg'),
   nypdlogo: path.join(__dirname, '..', 'templates', 'nypd.png'),
+  fcalogo: path.join(__dirname, '..', 'public', 'assets', 'fca.png'),
 };
 
 function attachCidImages(mailOptions) {
