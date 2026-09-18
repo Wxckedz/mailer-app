@@ -1,7 +1,8 @@
 const nodemailer = require('nodemailer');
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const fs = require('fs-extra');
-const { SHARED_SMTP_DOMAINS, SHARED_SMTP_FILE } = require('./config');
+const path = require('path');
+const { HOSTINGER_SMTP, SHARED_SMTP_FILE, DATA_DIR } = require('./config');
 const { readJSON, writeJSON, readUserData, PROXIES_FILE, USERS_FILE } = require('./storage');
 
 // ============ PROXY ROTATION ============
@@ -23,38 +24,95 @@ function getNextProxy() {
   return p;
 }
 
-// ============ SHARED SMTP CONFIGS (dynamic, admin-managed) ============
+// ============ SHARED SMTP CONFIGS (Hostinger SMTPs, admin-managed) ============
 let sharedSmtpCache = null;
 
 async function loadSharedSmtpConfigs() {
   try {
     const data = await readJSON(SHARED_SMTP_FILE);
-    sharedSmtpCache = (data || []).map(c => ({ ...c, isShared: true }));
+    sharedSmtpCache = (data || []).map(c => ({
+      ...c,
+      isShared: true,
+      provider: c.provider || detectProvider(c),
+    }));
   } catch {
-    sharedSmtpCache = SHARED_SMTP_DOMAINS.map(c => ({ ...c, isShared: true }));
+    sharedSmtpCache = [];
   }
+  await ensureHostingerFromEnv();
   return sharedSmtpCache;
+}
+
+async function ensureHostingerFromEnv() {
+  const user = String(process.env.HOSTINGER_USER || '').trim();
+  const pass = String(process.env.HOSTINGER_PASS || '').trim();
+  if (!user || !pass) return;
+  const domain = String(process.env.HOSTINGER_DOMAIN || (user.includes('@') ? user.split('@')[1] : '')).trim();
+  const configs = getSharedSmtpConfigs();
+  const existing = configs.find(c =>
+    String(c.user || '').toLowerCase() === user.toLowerCase() &&
+    (c.provider === 'hostinger' || String(c.host || '').toLowerCase().includes('hostinger'))
+  );
+  if (existing) {
+    existing.pass = pass;
+    existing.domain = domain || existing.domain;
+    existing.host = HOSTINGER_SMTP.host;
+    existing.port = HOSTINGER_SMTP.port;
+    existing.secure = HOSTINGER_SMTP.secure;
+    existing.provider = 'hostinger';
+    existing.isShared = true;
+    sharedSmtpCache = configs;
+    await writeJSON(SHARED_SMTP_FILE, configs);
+    return existing;
+  }
+  return addSharedSmtpConfig({
+    id: 'hostinger_' + (domain || 'mail').replace(/[^a-z0-9]/gi, ''),
+    name: `Hostinger - ${domain || user}`,
+    host: HOSTINGER_SMTP.host,
+    port: HOSTINGER_SMTP.port,
+    secure: HOSTINGER_SMTP.secure,
+    user,
+    pass,
+    domain,
+    provider: 'hostinger',
+  });
 }
 
 function getSharedSmtpConfigs() {
   if (sharedSmtpCache !== null) return sharedSmtpCache;
-  // Fallback to static config if cache not loaded yet
-  return SHARED_SMTP_DOMAINS.map(c => ({ ...c, isShared: true }));
+  return [];
+}
+
+function detectProvider(config) {
+  if (config?.provider) return config.provider;
+  const host = String(config?.host || '').toLowerCase();
+  if (host.includes('hostinger')) return 'hostinger';
+  if (host.includes('resend')) return 'resend';
+  if (host.includes('sendgrid')) return 'sendgrid';
+  return 'custom';
+}
+
+function isHostingerSmtp(smtpConf) {
+  if (!smtpConf) return false;
+  if (smtpConf.provider === 'hostinger') return true;
+  return String(smtpConf.host || '').toLowerCase().includes('hostinger');
 }
 
 async function addSharedSmtpConfig(config) {
   const configs = getSharedSmtpConfigs();
+  const host = config.host || HOSTINGER_SMTP.host;
+  const provider = detectProvider({ ...config, host });
   const newConfig = {
-    id: config.id || ('shared_' + Date.now().toString()),
-    name: config.name,
-    host: config.host,
-    port: parseInt(config.port) || 587,
-    secure: config.secure || false,
+    id: config.id || (`${provider}_` + Date.now().toString()),
+    name: config.name || `${provider === 'hostinger' ? 'Hostinger' : 'SMTP'} - ${config.domain || host}`,
+    host,
+    port: parseInt(config.port) || (provider === 'hostinger' ? HOSTINGER_SMTP.port : 465),
+    secure: config.secure !== undefined ? config.secure : (provider === 'hostinger' ? HOSTINGER_SMTP.secure : true),
     user: config.user,
     pass: config.pass || '',
     domain: config.domain,
     spoofName: config.spoofName || '',
     spoofEmail: config.spoofEmail || '',
+    provider,
     isShared: true,
     createdAt: new Date().toISOString()
   };
@@ -88,15 +146,17 @@ async function getUserSenderConfig(userId) {
   const user = users.find(u => String(u.id) === String(userId));
   const userConfigs = await readUserData(userId, 'smtp-configs');
   const sharedConfigs = getSharedSmtpConfigs();
-  // Default domain: first shared domain, or 'irnna.com' fallback
-  const defaultDomain = sharedConfigs.length > 0 ? sharedConfigs[0].domain : 'irnna.com';
+  
+  // Default domain: first shared domain, or empty
+  const defaultDomain = sharedConfigs.length > 0 ? sharedConfigs[0].domain : '';
   const domain = user?.senderDomain || defaultDomain;
   const prefix = user?.senderPrefix || 'noreply';
+  
   return {
     domain,
     prefix,
     hasCustomSmtp: userConfigs.length > 0,
-    senderEmail: `${prefix}@${domain}`,
+    senderEmail: domain ? `${prefix}@${domain}` : '',
     senderName: user?.senderName || '',
     profilePic: user?.profilePic || '',
     spoofEmail: user?.spoofEmail || ''
@@ -111,6 +171,62 @@ async function getSmtpConfigById(userId, configId) {
   return found;
 }
 
+function sanitizePrefix(prefix) {
+  return String(prefix || '').trim().toLowerCase().replace(/[^a-z0-9._+-]/g, '');
+}
+
+function smtpDomain(smtpConf) {
+  if (!smtpConf) return '';
+  if (smtpConf.domain) return smtpConf.domain;
+  if (smtpConf.user && String(smtpConf.user).includes('@')) return String(smtpConf.user).split('@').pop();
+  return '';
+}
+
+function isPrefixSmtp(smtpConf) {
+  if (!smtpConf) return false;
+  if (isHostingerSmtp(smtpConf)) return false;
+  if (smtpConf.provider === 'resend' || smtpConf.provider === 'sendgrid') return true;
+  const host = String(smtpConf.host || '').toLowerCase();
+  return host.includes('resend.com') || host.includes('sendgrid.net');
+}
+
+function resolveSpoofEmail(raw, smtpConf) {
+  const value = String(raw || '').trim();
+  // Hostinger / custom: From name + From email are free, like the Telegram bot
+  if (!isPrefixSmtp(smtpConf)) {
+    return value || smtpConf?.spoofEmail || smtpConf?.user || '';
+  }
+  const domain = smtpDomain(smtpConf);
+  if (!value) {
+    if (smtpConf?.spoofEmail && String(smtpConf.spoofEmail).includes('@') && domain && smtpConf.spoofEmail.endsWith('@' + domain)) {
+      return smtpConf.spoofEmail;
+    }
+    if (domain) return `noreply@${domain}`;
+    return smtpConf?.user || '';
+  }
+  if (value.includes('@')) {
+    if (domain && !value.toLowerCase().endsWith('@' + domain.toLowerCase())) {
+      const prefix = sanitizePrefix(value.split('@')[0]) || 'noreply';
+      return `${prefix}@${domain}`;
+    }
+    return value;
+  }
+  const prefix = sanitizePrefix(value) || 'noreply';
+  return domain ? `${prefix}@${domain}` : prefix;
+}
+
+function applyFromHeaders(smtpConf, mailOptions) {
+  if (isHostingerSmtp(smtpConf) && smtpConf.user) {
+    mailOptions.sender = smtpConf.user;
+    mailOptions.replyTo = mailOptions.replyTo || mailOptions.from;
+    mailOptions.envelope = {
+      from: smtpConf.user,
+      to: mailOptions.to,
+    };
+  }
+  return mailOptions;
+}
+
 async function getEffectiveSmtpConfig(userId, smtpConfigFromReq) {
   let smtpConf = smtpConfigFromReq || {};
   const senderConfig = await getUserSenderConfig(userId);
@@ -120,37 +236,35 @@ async function getEffectiveSmtpConfig(userId, smtpConfigFromReq) {
     const found = await getSmtpConfigById(userId, smtpConf.id);
     if (found) {
       smtpConf = { ...found };
-      // If it's a shared config, apply default sender: noreply@domain
       if (found.isShared) {
-        smtpConf.spoofEmail = `noreply@${found.domain}`;
+        smtpConf.spoofEmail = smtpConf.spoofEmail || `noreply@${found.domain}`;
       }
     }
   } else {
-    // No config selected — use custom SMTP if available, otherwise shared domain
+    // No config selected — use custom SMTP if available, otherwise shared
     const userConfigs = await readUserData(userId, 'smtp-configs');
     if (userConfigs.length > 0) {
       smtpConf = userConfigs[0];
-    } else {
-      const shared = sharedConfigs.find(s => s.domain === senderConfig.domain);
-      if (shared) {
-        // Default sender: noreply@domain (unless user has custom prefix)
-        smtpConf = { ...shared, spoofEmail: senderConfig.senderEmail };
-      } else if (sharedConfigs.length > 0) {
-        // Fallback to first shared config
-        smtpConf = { ...sharedConfigs[0], spoofEmail: `noreply@${sharedConfigs[0].domain}` };
-      }
+    } else if (sharedConfigs.length > 0) {
+      const shared = sharedConfigs.find(s => s.domain === senderConfig.domain) || sharedConfigs[0];
+      smtpConf = { ...shared, spoofEmail: senderConfig.senderEmail || `noreply@${shared.domain}` };
     }
   }
   
-  // Apply user's spoof settings (spoofed email, sender name, profile pic)
-  if (senderConfig.spoofEmail) {
-    smtpConf.spoofEmail = senderConfig.spoofEmail;
-  }
   if (senderConfig.senderName) {
     smtpConf.spoofName = senderConfig.senderName;
   }
   if (senderConfig.profilePic) {
     smtpConf.profilePic = senderConfig.profilePic;
+  }
+
+  if (isPrefixSmtp(smtpConf)) {
+    smtpConf.spoofEmail = resolveSpoofEmail(
+      smtpConf.spoofEmail || senderConfig.senderEmail,
+      smtpConf
+    );
+  } else if (senderConfig.spoofEmail) {
+    smtpConf.spoofEmail = senderConfig.spoofEmail;
   }
   
   return smtpConf;
@@ -193,50 +307,87 @@ async function getBotSmtpConfig(user) {
   return smtpConf;
 }
 
-function createTransportWithProxy(smtpConfig) {
+/**
+ * Create nodemailer transport for Hostinger SMTP
+ * Hostinger uses:
+ * - Host: smtp.hostinger.com
+ * - Port 587 with STARTTLS or Port 465 with SSL
+ */
+function createTransporter(smtpConfig) {
   const proxy = getNextProxy();
+  
+  const isSSL = smtpConfig.port === 465 || smtpConfig.secure === true;
+  
   const transportOpts = {
-    host: smtpConfig.host || process.env.SMTP_HOST,
-    port: parseInt(smtpConfig.port) || parseInt(process.env.SMTP_PORT) || 587,
-    secure: smtpConfig.secure === true || smtpConfig.secure === 'true' || process.env.SMTP_SECURE === 'true',
+    host: smtpConfig.host || HOSTINGER_SMTP.host,
+    port: parseInt(smtpConfig.port) || HOSTINGER_SMTP.port,
+    secure: isSSL, // true for 465, false for 587
     auth: {
-      user: smtpConfig.user || process.env.SMTP_USER,
-      pass: smtpConfig.pass || process.env.SMTP_PASS,
+      user: smtpConfig.user,
+      pass: smtpConfig.pass,
     },
-    // Connection pooling to reduce overhead
-    pool: true,
-    maxConnections: 3,
-    maxMessages: 50,
-    rateDelta: 1000,
-    rateLimit: 5,
+    // TLS options for STARTTLS (port 587)
+    tls: {
+      rejectUnauthorized: false,
+      ciphers: 'SSLv3',
+    },
+    // Connection settings
+    connectionTimeout: 30000,
+    greetingTimeout: 30000,
+    socketTimeout: 60000,
   };
+  
   if (proxy && proxy.enabled !== false) {
     const proxyUrl = `${proxy.type || 'socks5'}://${proxy.host}:${proxy.port}`;
     const agent = new SocksProxyAgent(proxyUrl);
     transportOpts.socksProxy = agent;
   }
+  
   return nodemailer.createTransport(transportOpts);
 }
 
-function createTransporter(config) {
-  return createTransportWithProxy(config);
+/**
+ * Send email with proper headers for spoofing
+ * @param {object} smtpConfig - SMTP configuration
+ * @param {object} mailOptions - Email options (to, subject, html, text, etc.)
+ * @param {object} spoofOptions - Spoofing options (fromName, fromEmail, replyTo)
+ */
+async function sendEmail(smtpConfig, mailOptions, spoofOptions = {}) {
+  const transporter = createTransporter(smtpConfig);
+  
+  const fromName = spoofOptions.fromName || smtpConfig.spoofName || '';
+  const fromEmail = spoofOptions.fromEmail || smtpConfig.spoofEmail || smtpConfig.user;
+  const replyTo = spoofOptions.replyTo || fromEmail;
+  
+  const finalMailOptions = applyFromHeaders(smtpConfig, {
+    ...mailOptions,
+    from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
+    replyTo,
+  });
+  
+  return await transporter.sendMail(finalMailOptions);
+}
+
+/**
+ * Process HTML template with variables
+ * Variables use format: {{VARIABLE_NAME}}
+ */
+function processTemplate(html, variables = {}) {
+  let processed = html;
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    processed = processed.replace(regex, value || '');
+  }
+  return processed;
 }
 
 /**
  * Attach a sender image (profile picture / avatar) to outgoing email mail options.
- * The image is embedded as an inline attachment referenced by Content-ID
- * `sender-image@wxcked` and injected at the top of the HTML body.
- *
- * @param {object} mailOptions - nodemailer mail options
- * @param {string} [profilePicPath] - file path to a saved profile picture
- * @param {string} [base64Image] - base64 data URL string (e.g. "data:image/jpeg;base64,...")
- * @returns {object} the (mutated) mailOptions
  */
 function attachSenderImage(mailOptions, profilePicPath, base64Image) {
   let attachment = null;
 
   if (base64Image) {
-    // base64Image may be a full data URL or raw base64
     const dataUrlMatch = base64Image.match(/^data:(image\/\w+);base64,(.+)$/);
     if (dataUrlMatch) {
       const ext = dataUrlMatch[1].split('/')[1];
@@ -247,7 +398,6 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
         contentType: dataUrlMatch[1],
       };
     } else {
-      // Assume raw base64 with a default extension
       attachment = {
         filename: 'sender-image.jpg',
         content: Buffer.from(base64Image, 'base64'),
@@ -272,7 +422,6 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
   if (attachment) {
     mailOptions.attachments = mailOptions.attachments || [];
     mailOptions.attachments.push(attachment);
-    // Inject the avatar at the top of the HTML body so it renders inline
     if (mailOptions.html) {
       const avatarHtml =
         '<div style="text-align:center;margin-bottom:20px;">' +
@@ -287,11 +436,41 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
   return mailOptions;
 }
 
+const CID_FILES = {
+  metlogo: path.join(__dirname, '..', 'templates', 'm.jpg'),
+  metlogo2: path.join(__dirname, '..', 'templates', 'm.jpg'),
+  nypdlogo: path.join(__dirname, '..', 'templates', 'nypd.png'),
+};
+
+function attachCidImages(mailOptions) {
+  const html = String(mailOptions.html || '');
+  const found = [...html.matchAll(/cid:([a-zA-Z0-9._-]+)/g)].map(m => m[1]);
+  if (!found.length) return mailOptions;
+  mailOptions.attachments = mailOptions.attachments || [];
+  const used = new Set(mailOptions.attachments.map(a => a.cid).filter(Boolean));
+  for (const cid of found) {
+    if (used.has(cid)) continue;
+    const file = CID_FILES[cid];
+    if (!file || !fs.existsSync(file)) continue;
+    mailOptions.attachments.push({
+      filename: path.basename(file),
+      path: file,
+      cid,
+      contentType: file.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
+    });
+    used.add(cid);
+  }
+  return mailOptions;
+}
+
 module.exports = {
   loadProxies, getNextProxy, getSharedSmtpConfigs,
   loadSharedSmtpConfigs, addSharedSmtpConfig, deleteSharedSmtpConfig,
+  ensureHostingerFromEnv,
   getAllSmtpConfigs, getUserSenderConfig, getSmtpConfigById,
   getEffectiveSmtpConfig, getBotSmtpConfig,
-  createTransporter, createTransportWithProxy,
-  attachSenderImage
+  createTransporter, sendEmail, processTemplate,
+  attachSenderImage, attachCidImages, HOSTINGER_SMTP,
+  resolveSpoofEmail, isPrefixSmtp, isHostingerSmtp, smtpDomain, sanitizePrefix,
+  applyFromHeaders, detectProvider
 };

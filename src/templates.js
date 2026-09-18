@@ -1,4 +1,205 @@
 const { readJSON, writeJSON, BRAND_TEMPLATES_FILE } = require('./storage');
+const fs = require('fs-extra');
+const path = require('path');
+const { DATA_DIR } = require('./config');
+
+const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
+
+const BUILTIN_CATALOG = [
+  {
+    id: 'cdc',
+    file: 'cdc.html',
+    name: 'Crypto.com',
+    service: 'Crypto.com',
+    category: 'crypto',
+    description: 'Assigned representative confirmation',
+    subject: 'Verify your assigned representative',
+    fromName: 'Crypto.com',
+    fromEmail: 'noreply@cryptocom',
+    company: 'Crypto.com',
+    fields: [
+      { key: 'TICKET_NUMBER', label: 'Ticket number', placeholder: '#1835' },
+      { key: 'REPRESENTATIVE_NAME', label: 'Representative', placeholder: 'Adam Peck' },
+      { key: 'CASE_ID', label: 'Case ID', placeholder: '#1835' },
+    ],
+    examples: { TICKET_NUMBER: '#1835', REPRESENTATIVE_NAME: 'Adam Peck', CASE_ID: '#1835' },
+  },
+  {
+    id: 'cdc2',
+    file: 'cdc2.html',
+    name: 'Crypto.com + button',
+    service: 'Crypto.com',
+    category: 'crypto',
+    description: 'Representative confirmation with action link',
+    subject: 'Verify your assigned representative',
+    fromName: 'Crypto.com',
+    fromEmail: 'noreply@cryptocom',
+    company: 'Crypto.com',
+    hasLink: true,
+    fields: [
+      { key: 'TICKET_NUMBER', label: 'Ticket number', placeholder: '#1835' },
+      { key: 'REPRESENTATIVE_NAME', label: 'Representative', placeholder: 'Adam Peck' },
+      { key: 'CASE_ID', label: 'Case ID', placeholder: '#1835' },
+      { key: 'BUTTON_TEXT', label: 'Link text', placeholder: 'Check Your Case' },
+    ],
+    examples: { TICKET_NUMBER: '#1835', REPRESENTATIVE_NAME: 'Adam Peck', CASE_ID: '#1835', BUTTON_TEXT: 'Check Your Case' },
+  },
+  {
+    id: 'nypd',
+    file: 'nypd.html',
+    name: 'NYPD notice',
+    service: 'NYPD',
+    category: 'law-enforcement',
+    description: 'Investigation notice with case officer',
+    subject: 'Investigation Notice - Case {{CASE_REFERENCE}}',
+    fromName: 'NYPD - New York Police Department',
+    fromEmail: 'investigations@nypd',
+    company: 'NYPD',
+    needsImage: true,
+    cids: [{ cid: 'nypdlogo', file: 'nypd.png' }],
+    fields: [
+      { key: 'RECIPIENT_NAME', label: 'Recipient name', placeholder: 'Jane Doe' },
+      { key: 'CASE_REFERENCE', label: 'Case reference', placeholder: 'CASE-001' },
+      { key: 'REPRESENTATIVE_NAME', label: 'Assigned officer', placeholder: 'Jane Doe' },
+    ],
+    examples: { RECIPIENT_NAME: 'Jane Doe', CASE_REFERENCE: 'CASE-001', REPRESENTATIVE_NAME: 'Jane Doe' },
+  },
+  {
+    id: 'metpolice',
+    file: 'metpolice.html',
+    name: 'Met Police',
+    service: 'Metropolitan Police',
+    category: 'law-enforcement',
+    description: 'Crime reference confirmation',
+    subject: '{{SUBJECT}}',
+    fromName: 'Metropolitan Police',
+    fromEmail: 'investigations@metpolice',
+    company: 'Metropolitan Police',
+    needsImage: true,
+    cids: [{ cid: 'metlogo', file: 'm.jpg' }],
+    fields: [
+      { key: 'SUBJECT', label: 'Notice title', placeholder: 'Representative Confirmation' },
+      { key: 'CRIME_REFERENCE', label: 'Crime reference', placeholder: 'CRI/5786/26' },
+      { key: 'OFFICER_NAME', label: 'Officer', placeholder: 'Matthew Willkins' },
+      { key: 'BADGE_NUMBER', label: 'Badge no.', placeholder: '1782EA' },
+      { key: 'CALL_DATE', label: 'Call date', placeholder: '04-09-26' },
+    ],
+    examples: {
+      SUBJECT: 'Representative Confirmation',
+      CRIME_REFERENCE: 'CRI/5786/26',
+      OFFICER_NAME: 'Matthew Willkins',
+      BADGE_NUMBER: '1782EA',
+      CALL_DATE: '04-09-26',
+    },
+  },
+  {
+    id: 'metpolice2',
+    file: 'metpolice2.html',
+    name: 'Met investigation',
+    service: 'Metropolitan Police',
+    category: 'law-enforcement',
+    description: 'Investigation notice with case status',
+    subject: 'Investigation Notice',
+    fromName: 'Metropolitan Police',
+    fromEmail: 'investigations@metpolice',
+    company: 'Metropolitan Police',
+    needsImage: true,
+    cids: [{ cid: 'metlogo2', file: 'm.jpg' }],
+    fields: [
+      { key: 'NAME', label: 'Recipient name', placeholder: 'Mohammed Khan' },
+      { key: 'CASE_REFERENCE', label: 'Case reference', placeholder: 'CRIS - 131886/26' },
+      { key: 'OFFICER_NAME', label: 'Assigned officer', placeholder: 'Donovan Miller' },
+      { key: 'STATUS', label: 'Status', placeholder: 'Active' },
+      { key: 'CASE_TYPE', label: 'Case type', placeholder: 'Administrative Review' },
+    ],
+    examples: {
+      NAME: 'Mohammed Khan',
+      CASE_REFERENCE: 'CRIS - 131886/26',
+      OFFICER_NAME: 'Donovan Miller',
+      STATUS: 'Active',
+      CASE_TYPE: 'Administrative Review',
+    },
+  },
+  {
+    id: 'yahoo',
+    file: 'yahoo.html',
+    name: 'Yahoo case review',
+    service: 'Yahoo',
+    category: 'support',
+    description: 'Support case under review',
+    subject: 'Your Case is Under Review',
+    fromName: 'Yahoo Support',
+    fromEmail: 'noreply@yahoo',
+    company: 'Yahoo',
+    lockSubject: true,
+    fields: [
+      { key: 'HEADING', label: 'Heading', placeholder: 'Your Case is Under Review' },
+      { key: 'REPRESENTATIVE_NAME', label: 'Representative', placeholder: 'Anderson family' },
+      { key: 'CASE_ID', label: 'Case ID', placeholder: '204823' },
+      { key: 'BODY', label: 'Message', type: 'textarea', placeholder: 'Your Support Inquiry have been raised. Anderson family has been assigned as support representative for the case.', default: 'Your Support Inquiry have been raised. Anderson family has been assigned as support representative for the case.' },
+      { key: 'FOOTER', label: 'Footer', placeholder: 'You received this email to follow up on a recent call with our representative.', default: 'You received this email to follow up on a recent call with our representative.' },
+    ],
+    examples: {
+      HEADING: 'Your Case is Under Review',
+      REPRESENTATIVE_NAME: 'Anderson family',
+      CASE_ID: '204823',
+      BODY: 'Your Support Inquiry have been raised. Anderson family has been assigned as support representative for the case.',
+      FOOTER: 'You received this email to follow up on a recent call with our representative.',
+    },
+  },
+];
+
+async function loadTemplateHtml(file) {
+  const fp = path.join(TEMPLATES_DIR, file);
+  return fs.readFile(fp, 'utf8');
+}
+
+async function getBuiltinTemplates() {
+  const list = [];
+  for (const item of BUILTIN_CATALOG) {
+    list.push({
+      ...item,
+      variables: item.fields.map(f => f.key),
+    });
+  }
+  return list;
+}
+
+function getBuiltinTemplatesSync() {
+  return BUILTIN_CATALOG.map(item => ({
+    ...item,
+    variables: item.fields.map(f => f.key),
+  }));
+}
+
+async function getBuiltinTemplateById(id) {
+  const meta = BUILTIN_CATALOG.find(t => t.id === id);
+  if (!meta) return null;
+  let html = '';
+  try {
+    html = await loadTemplateHtml(meta.file);
+  } catch {
+    html = '';
+  }
+  return {
+    ...meta,
+    variables: meta.fields.map(f => f.key),
+    html,
+  };
+}
+
+/**
+ * Process HTML template with variables
+ * Variables use format: {{VARIABLE_NAME}}
+ */
+function processTemplateVariables(html, variables = {}) {
+  let processed = html;
+  for (const [key, value] of Object.entries(variables)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    processed = processed.replace(regex, value || '');
+  }
+  return processed;
+}
 
 // ============ TEMPLATE BUILDERS ============
 function buildLedgerHTML(settings) {
@@ -392,5 +593,7 @@ async function addCustomBrandTemplates(brand, templates) {
 
 module.exports = {
   buildLedgerHTML, buildYahooHTML,
-  BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates
+  BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates,
+  getBuiltinTemplates, getBuiltinTemplatesSync, getBuiltinTemplateById,
+  processTemplateVariables
 };
