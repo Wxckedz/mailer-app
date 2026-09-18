@@ -1,9 +1,29 @@
 const crypto = require('crypto');
-const { SESSION_TTL_MS } = require('./config');
+const fs = require('fs-extra');
+const path = require('path');
+const { SESSION_TTL_MS, DATA_DIR } = require('./config');
 const { readJSON, writeJSON, USERS_FILE } = require('./storage');
 
-// Sessions with TTL to prevent memory leaks
+const SESSIONS_FILE = path.join(DATA_DIR, 'sessions.json');
 const SESSIONS = new Map();
+
+function persistSessions() {
+  const obj = {};
+  for (const [token, session] of SESSIONS) obj[token] = session;
+  try { fs.writeJsonSync(SESSIONS_FILE, obj); } catch {}
+}
+
+function loadSessions() {
+  try {
+    const raw = fs.readJsonSync(SESSIONS_FILE);
+    const now = Date.now();
+    Object.entries(raw || {}).forEach(([token, session]) => {
+      if (session && now - session.createdAt <= SESSION_TTL_MS) SESSIONS.set(token, session);
+    });
+  } catch {}
+}
+
+loadSessions();
 
 function generateToken() {
   return crypto.randomBytes(32).toString('hex');
@@ -11,14 +31,16 @@ function generateToken() {
 
 function cleanupExpiredSessions() {
   const now = Date.now();
+  let changed = false;
   for (const [token, session] of SESSIONS) {
     if (now - session.createdAt > SESSION_TTL_MS) {
       SESSIONS.delete(token);
+      changed = true;
     }
   }
+  if (changed) persistSessions();
 }
 
-// Clean up expired sessions every 10 minutes
 setInterval(cleanupExpiredSessions, 10 * 60 * 1000).unref();
 
 function createSession(user) {
@@ -29,11 +51,13 @@ function createSession(user) {
     id: user.id,
     createdAt: Date.now()
   });
+  persistSessions();
   return token;
 }
 
 function destroySession(token) {
   if (token) SESSIONS.delete(token);
+  persistSessions();
 }
 
 function getSession(token) {
@@ -42,6 +66,7 @@ function getSession(token) {
   // Check TTL on access
   if (Date.now() - session.createdAt > SESSION_TTL_MS) {
     SESSIONS.delete(token);
+    persistSessions();
     return null;
   }
   return session;

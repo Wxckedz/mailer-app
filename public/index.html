@@ -173,6 +173,28 @@
     .login-box .login-inner > p { color: var(--muted); margin: 6px 0 18px; }
     .keep { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin: 4px 0 14px; }
     .keep input { width: auto; }
+    input[type="checkbox"] {
+      appearance: none; -webkit-appearance: none;
+      width: 18px; height: 18px; margin: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--card2);
+      display: inline-grid; place-items: center;
+      cursor: pointer; flex: 0 0 auto;
+    }
+    input[type="checkbox"]:hover { border-color: var(--purple); }
+    input[type="checkbox"]:checked {
+      background: var(--purple);
+      border-color: var(--purple);
+      box-shadow: 0 0 10px var(--glow);
+    }
+    input[type="checkbox"]:checked::after {
+      content: "";
+      width: 5px; height: 9px;
+      border: 2px solid #fff;
+      border-top: 0; border-left: 0;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
     .login-error { display: none; color: var(--bad); margin-top: 10px; font-size: 12px; }
     .login-error.show { display: block; }
     .login-foot {
@@ -481,6 +503,119 @@
     .item .d { color: var(--muted); font-size: 12px; margin-top: 3px; }
     .empty { color: var(--muted); }
 
+    .inbox-bar { display:flex; gap:10px; align-items:end; flex-wrap:wrap; margin-bottom:12px; }
+    .inbox-bar .field { margin:0; flex:1; min-width:180px; }
+    .inbox-bar .seg button {
+      border-radius: 12px; padding: 10px 14px; font-weight: 650; font-size: 12px;
+    }
+    .inbox-bar .ghost { height: 42px; display: inline-flex; align-items: center; }
+    .imap-live { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; margin-left:auto; }
+    .imap-live i {
+      width:8px; height:8px; border-radius:99px; background:var(--muted);
+      box-shadow:none;
+    }
+    .imap-live.on i { background:var(--ok); box-shadow:0 0 10px var(--ok); animation:imapPulse 1.6s ease infinite; }
+    @keyframes imapPulse { 50% { opacity:.35 } }
+    .inbox {
+      display:grid; grid-template-columns: minmax(240px, 34%) 1fr; gap:14px;
+      min-height: min(62vh, 580px);
+    }
+    .inbox-col {
+      background: var(--card); border:1px solid var(--line); border-radius:18px;
+      overflow:hidden; min-height:360px; display:flex; flex-direction:column;
+    }
+    .inbox-scroll { flex:1; overflow:auto; }
+    .mail-row {
+      width:100%; text-align:left; border:0; background:transparent; color:var(--text);
+      padding:12px 14px; border-bottom:1px solid var(--line); cursor:pointer;
+      font: inherit;
+    }
+    .mail-row:hover { background: var(--hover); }
+    .mail-row.on { background: var(--active); }
+    .mail-row b { display:block; font-size:13px; font-weight:650; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mail-row span { display:block; color:var(--muted); font-size:12px; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mail-row em { display:block; color:var(--muted); font-size:11px; font-style:normal; margin-top:4px; }
+    .mail-row.unseen {
+      background: transparent;
+      box-shadow: inset 2px 0 0 var(--purple);
+    }
+    .mail-row.unseen b { color: var(--text); font-weight: 650; }
+    .mail-row.unseen span { color: var(--muted); }
+    .mail-new {
+      display: inline-block; font-size: 9px; letter-spacing: .08em; font-weight: 700;
+      color: var(--muted); background: var(--hover); border: 1px solid var(--line);
+      border-radius: 6px; padding: 1px 6px; margin-right: 6px; vertical-align: 1px;
+    }
+    .imap-toggle {
+      display: flex; gap: 4px;
+      background: var(--card2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 3px;
+      height: 42px;
+      box-sizing: border-box;
+    }
+    .imap-toggle button {
+      font-family: inherit;
+      border: 0; background: transparent; color: var(--muted);
+      border-radius: 9px; padding: 0 14px; font-size: 12px; font-weight: 650;
+      height: 100%;
+    }
+    .imap-toggle button:hover { color: var(--text); transform: none; background: var(--hover); }
+    .imap-toggle button.on {
+      background: var(--active); color: var(--text);
+      box-shadow: inset 0 0 0 1px var(--purple), 0 0 16px var(--glow);
+    }
+    .mail-row.old { opacity: .55; }
+    .mail-row.old b { font-weight: 500; }
+    .imap-read { padding:0; display:flex; flex-direction:column; min-height:0; }
+    .imap-empty {
+      flex:1; display:grid; place-items:center; text-align:center;
+      color: var(--muted); padding: 32px 20px;
+    }
+    .imap-empty b { display:block; color:var(--text); font-size:15px; font-weight:650; margin-bottom:6px; }
+    .imap-empty small { color:var(--muted); font-size:12px; }
+    .imap-body { display:none; flex:1; min-height:0; flex-direction:column; }
+    .imap-body.on { display:flex; }
+    .imap-head {
+      padding: 16px 18px 14px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, var(--hover), transparent);
+    }
+    .imap-head .kicker { margin-bottom: 6px; }
+    .imap-head h4 {
+      margin: 0 0 8px; font-size: 18px; font-weight: 700; letter-spacing: -.02em;
+      line-height: 1.25;
+    }
+    .imap-from { font-size: 13px; font-weight: 650; color: var(--text); }
+    .imap-from small { display:block; color: var(--muted); font-weight: 500; font-size: 12px; margin-top: 2px; }
+    .imap-when { color: var(--muted); font-size: 11px; margin-top: 8px; }
+    .imap-letter {
+      position: relative;
+      flex: 1; min-height: 0; margin: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--card2);
+      box-shadow: 0 18px 40px rgba(0,0,0,.28), 0 0 24px var(--glow);
+    }
+    .imap-read iframe {
+      display: block; width: 100%; height: 100%; min-height: 280px; border: 0; background: #efece4;
+    }
+    .imap-loading {
+      display: none; position: absolute; inset: 0; z-index: 2;
+      place-items: center; text-align: center;
+      background: var(--card); color: var(--muted); font-size: 13px;
+    }
+    .imap-loading.on { display: grid; }
+    .imap-loading i {
+      width: 28px; height: 28px; margin: 0 auto 10px;
+      border: 2px solid var(--line); border-top-color: var(--purple);
+      border-radius: 99px; animation: imapSpin .8s linear infinite;
+    }
+    @keyframes imapSpin { to { transform: rotate(360deg); } }
+    .imap-plain { display:none; }
+
     .modal {
       display: none; position: fixed; inset: 0; z-index: 40;
       background: rgba(0,0,0,.62); place-items: center; padding: 20px;
@@ -562,7 +697,7 @@
     .deck-play svg { width: 16px; height: 16px; }
     .deck-vol { width: 72px; height: 4px; padding: 0; border: 0; background: var(--card2); box-shadow: none; -webkit-appearance: none; appearance: none; border-radius: 99px; }
     .deck-vol::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 99px; background: var(--purple); }
-    .deck-list { margin-top: 12px; max-height: 132px; overflow: auto; }
+    .deck-list { margin-top: 12px; max-height: 220px; overflow: auto; }
     .deck-list button {
       width: 100%; display: flex; justify-content: space-between; gap: 8px;
       text-align: left; padding: 8px 10px; border-radius: 10px; color: var(--muted);
@@ -735,7 +870,7 @@
         padding-top: 18px;
       }
       .rail.open { transform: none; }
-      .split, .row, .row-3 { grid-template-columns: 1fr; }
+      .split, .row, .row-3, .inbox { grid-template-columns: 1fr; }
       .main { padding: 16px 14px 24px; }
       .head h1 { font-size: 22px; }
       .head { flex-wrap: wrap; }
@@ -836,6 +971,10 @@
           <button class="nav-btn" data-page="history">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h10M4 19h7"/><circle cx="18" cy="16" r="3"/></svg>
             History
+          </button>
+          <button class="nav-btn" data-page="imap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>
+            Inbox
           </button>
         </div>
         <div class="g">
@@ -997,6 +1136,54 @@
           </div>
         </section>
 
+        <section class="page" id="page-imap">
+          <div class="card" style="margin-bottom:14px">
+            <div class="inbox-bar">
+              <div class="field">
+                <label>Mailbox</label>
+                <select id="imapBox"></select>
+              </div>
+              <div class="field" style="flex:0 0 auto; min-width:0">
+                <label>View</label>
+                <div class="imap-toggle" id="imapToggle">
+                  <button type="button" class="on" data-mode="new">Hide old</button>
+                  <button type="button" data-mode="all">Show all</button>
+                </div>
+              </div>
+              <button class="ghost" type="button" onclick="openImapModal()">Add IMAP</button>
+              <button class="ghost" type="button" id="imapDelBtn" onclick="deleteImap()">Remove</button>
+              <div class="imap-live" id="imapLive"><i></i><span id="imapLiveText">Idle</span></div>
+            </div>
+            <p class="hint" id="imapHint">Hide old swallows the current inbox. Only mail that arrives after that shows. Nothing is deleted.</p>
+          </div>
+          <div class="inbox">
+            <div class="inbox-col">
+              <div class="inbox-scroll" id="imapList"><div class="empty" style="padding:16px">No mailbox yet.</div></div>
+            </div>
+            <div class="inbox-col imap-read" id="imapRead">
+              <div class="imap-empty" id="imapEmpty">
+                <div>
+                  <span class="kicker">INBOX</span>
+                  <b>Pick a message</b>
+                  <small>New mail stays marked. Nothing is deleted.</small>
+                </div>
+              </div>
+              <div class="imap-body" id="imapBody">
+                <div class="imap-head">
+                  <div class="kicker">MESSAGE</div>
+                  <h4 id="imapSub"></h4>
+                  <div class="imap-from" id="imapFrom"></div>
+                  <div class="imap-when" id="imapMeta"></div>
+                </div>
+                <div class="imap-letter">
+                  <div class="imap-loading" id="imapLoading"><div><i></i>Opening</div></div>
+                  <iframe id="imapFrame" sandbox="allow-same-origin" title="Mail"></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section class="page" id="page-smtp">
           <div class="card" style="margin-bottom:14px">
             <h3>Sender</h3>
@@ -1074,6 +1261,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M4 12h10M4 19h7"/><circle cx="18" cy="16" r="3"/></svg>
         <span>History</span>
       </button>
+      <button type="button" data-page="imap" title="Inbox">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 7l8 6 8-6"/></svg>
+        <span>Inbox</span>
+      </button>
       <button type="button" data-page="smtp" title="SMTP">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 9h18"/></svg>
         <span>SMTP</span>
@@ -1089,7 +1280,7 @@
     </nav>
 
     <div class="deck" id="deck">
-      <audio id="deckAudio" preload="metadata"></audio>
+      <audio id="deckAudio" preload="none"></audio>
       <div class="deck-win">
         <div class="deck-top">
           <div class="deck-disc" id="deckDisc">W</div>
@@ -1148,6 +1339,26 @@
       </div>
     </form>
   </div>
+  <div class="modal" id="imapModal">
+    <form class="card" id="imapForm" style="width:min(440px,100%)">
+      <h3>IMAP</h3>
+      <input type="hidden" id="imapId" />
+      <div class="field"><label>Name</label><input id="imapName" required placeholder="Main inbox" /></div>
+      <div class="row">
+        <div class="field"><label>Host</label><input id="imapHost" placeholder="imap.hostinger.com" required /></div>
+        <div class="field"><label>Port</label><input id="imapPort" value="993" /></div>
+      </div>
+      <div class="field"><label>User</label><input id="imapUser" required placeholder="you@domain.com" /></div>
+      <div class="field"><label>Password</label><input id="imapPass" type="password" required /></div>
+      <label style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <input type="checkbox" id="imapSecure" checked style="width:auto" /> SSL (993)
+      </label>
+      <div class="actions">
+        <button class="btn" type="submit">Save</button>
+        <button class="ghost" type="button" onclick="closeImapModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
   <div class="modal" id="saveTplModal">
     <form class="card" id="saveTplForm" style="width:min(420px,100%)">
       <h3>Save template</h3>
@@ -1178,6 +1389,7 @@ const PAGES = {
   'google-noreply': ['OVERVIEW', 'Google - Noreply', 'Quick send. Just email and subject.'],
   compose: ['CRAFT', 'Compose', 'Live HTML editor. Change the mailer and watch the preview update.'],
   history: ['OVERVIEW', 'History', 'Mail you already sent from this account.'],
+  imap: ['OVERVIEW', 'Inbox', 'Hide old swallows the current pile. Show all brings it back. Nothing is deleted.'],
   smtp: ['SETUP', 'SMTP', 'Resend uses a prefix. Hostinger lets you set any From.'],
   settings: ['SETUP', 'Settings', 'Default sender name for outgoing mail.'],
   users: ['SETUP', 'Users', 'Panel logins. They link Telegram with /link.']
@@ -1311,6 +1523,7 @@ async function logout() {
   sessionStorage.removeItem('wxcked_token');
   sessionStorage.removeItem('wxcked_user');
   showLogin();
+  stopImapLive();
 }
 
 $('loginForm').addEventListener('submit', async (e) => {
@@ -1360,6 +1573,8 @@ function switchPage(page) {
   if (page === 'users') loadUsers();
   if (page === 'settings') loadSettings();
   if (page === 'history') loadHistory();
+  if (page === 'imap') startImapLive();
+  else stopImapLive();
   if (page === 'compose') cmpPreview();
   if (page === 'templates') loadTemplates();
   if (page === 'google-noreply') loadGoogleSendSmtp();
@@ -1487,11 +1702,17 @@ $('cmpTpl').addEventListener('change', () => {
   else clearTemplate();
 });
 
+function todayLetterDate() {
+  return new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
 function collectVars() {
   const vars = {};
   $('cmpFields').querySelectorAll('[data-key]').forEach(i => vars[i.dataset.key] = i.value.trim());
   const url = ($('cmpTargetUrl').value || '').trim();
   if (url) vars.BUTTON_URL = url;
+  const to = ($('cmpTo').value || '').trim();
+  if (to && !vars.RECIPIENT_EMAIL) vars.RECIPIENT_EMAIL = to;
+  if (!vars.DATE) vars.DATE = todayLetterDate();
   return vars;
 }
 function applyVars(html, vars) {
@@ -1507,19 +1728,37 @@ const CID_PREVIEW = {
 };
 const cidData = {};
 function loadCidData(cid) {
-  if (cidData[cid]) return cidData[cid];
-  const path = CID_PREVIEW[cid];
-  if (!path) return Promise.resolve('');
-  cidData[cid] = fetch(path).then(r => {
-    if (!r.ok) throw new Error(path);
-    return r.blob();
-  }).then(b => new Promise((resolve, reject) => {
-    const fr = new FileReader();
-    fr.onload = () => resolve(fr.result);
-    fr.onerror = reject;
-    fr.readAsDataURL(b);
-  })).catch(() => '');
-  return cidData[cid];
+  const key = String(cid || '').split('@')[0];
+  if (cidData[key]) return cidData[key];
+  const paths = [
+    CID_PREVIEW[key],
+    '/assets/' + key + '.png',
+    '/assets/' + key + '.jpg',
+    '/assets/' + key + '.jpeg',
+    '/assets/' + key + '.gif',
+    (key === 'metlogo' || key === 'metlogo2' || key === 'm') ? '/assets/metlogo.jpg' : '',
+    (key === 'nypdlogo' || key === 'nypd') ? '/assets/nypdlogo.png' : '',
+    (key === 'fcalogo' || key === 'fca') ? '/assets/fca.png' : '',
+  ].filter(Boolean);
+  cidData[key] = (async () => {
+    for (const p of [...new Set(paths)]) {
+      try {
+        const r = await fetch(p);
+        if (!r.ok) continue;
+        const b = await r.blob();
+        if (!String(b.type || '').startsWith('image/')) continue;
+        const data = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result);
+          fr.onerror = reject;
+          fr.readAsDataURL(b);
+        });
+        if (data) return data;
+      } catch (e) {}
+    }
+    return '';
+  })();
+  return cidData[key];
 }
 async function applyLinks(html, preview) {
   const url = ($('cmpTargetUrl').value || '').trim();
@@ -1529,10 +1768,10 @@ async function applyLinks(html, preview) {
     out = out.replace(/href=(["'])https:\/\/awsmailer\.com\/?\1/gi, 'href=$1' + url + '$1');
   }
   if (preview) {
-    for (const cid of Object.keys(CID_PREVIEW)) {
-      if (!out.includes('cid:' + cid)) continue;
-      const data = await loadCidData(cid);
-      if (data) out = out.split('cid:' + cid).join(data);
+    const cids = [...out.matchAll(/cid:([a-zA-Z0-9._@-]+)/g)].map(m => m[1]);
+    for (const raw of cids) {
+      const data = await loadCidData(raw);
+      if (data) out = out.split('cid:' + raw).join(data);
     }
   }
   return out;
@@ -1619,7 +1858,9 @@ function applyOpenedTemplate(tpl, selectId, jump) {
   setLinkMode(!!tpl.hasLink);
   setFromMode('cmpSmtp','cmpFromCombo','cmpFromEmail','cmpFromDomain','cmpFromHint');
   $('cmpFields').innerHTML = (tpl.fields || []).map(f => {
-    const raw = f.default || ((f.key === 'BODY' || f.key === 'FOOTER') && tpl.examples ? tpl.examples[f.key] : '') || '';
+    let raw = f.default || ((f.key === 'BODY' || f.key === 'FOOTER') && tpl.examples ? tpl.examples[f.key] : '') || '';
+    if (f.key === 'DATE' && !raw) raw = todayLetterDate();
+    if (f.key === 'RECIPIENT_EMAIL' && !raw) raw = ($('cmpTo').value || '').trim();
     const val = String(raw).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
     return `<div class="field"><label>${esc(f.label)}</label>
     ${f.type === 'textarea'
@@ -1635,9 +1876,12 @@ window.openTemplate = openTemplate;
 function fillExamples() {
   if (!selectedTpl || !selectedTpl.examples) return toast('Pick a template first');
   Object.entries(selectedTpl.examples).forEach(([k, v]) => {
+    if (k === 'DATE') return;
     const i = $('cmpFields').querySelector('[data-key="' + k + '"]');
     if (i) i.value = v;
   });
+  const dateEl = $('cmpFields').querySelector('[data-key="DATE"]');
+  if (dateEl && !dateEl.value.trim()) dateEl.value = todayLetterDate();
   if (selectedTpl.examples.SUBJECT) $('cmpSubject').value = selectedTpl.examples.SUBJECT;
   cmpPreview();
 }
@@ -1755,12 +1999,305 @@ $('composeForm').addEventListener('submit', async (e) => {
 async function loadHistory() {
   const r = await api('/api/send-history');
   const d = await r.json();
-  const logs = d.logs || [];
+  if (!d.success) {
+    if (r.status === 401) return showLogin();
+    $('historyList').innerHTML = 'Could not load history.';
+    return;
+  }
+  const logs = Array.isArray(d.logs) ? d.logs : [];
+  $('historyList').classList.toggle('empty', !logs.length);
   $('historyList').innerHTML = logs.length ? logs.map(l => `
     <div class="item"><div><div>${l.template || 'compose'} · ${l.to}</div>
     <div class="d">${l.subject || ''} · ${new Date(l.at).toLocaleString()}</div></div>
     <span class="d">${l.success ? 'sent' : 'fail'}</span></div>`).join('') : 'Nothing sent yet.';
 }
+
+let imapBoxes = [];
+let imapMails = [];
+let imapTimer = 0;
+let imapBusy = false;
+let imapStamp = '';
+let imapUid = '';
+let imapCount = 20;
+let imapTotal = 0;
+let imapUnseenN = 0;
+let imapHideOld = localStorage.getItem('wxcked_imap_mode') !== 'all';
+let imapPendingSweep = imapHideOld && !localStorage.getItem('wxcked_imap_since_' + (localStorage.getItem('wxcked_imap') || ''));
+
+function stopImapLive() {
+  if (imapTimer) { clearInterval(imapTimer); imapTimer = 0; }
+  const live = $('imapLive');
+  if (live) live.classList.remove('on');
+  if ($('imapLiveText')) $('imapLiveText').textContent = 'Idle';
+}
+function startImapLive() {
+  $('imapToggle').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode === (imapHideOld ? 'new' : 'all')));
+  loadImapBoxes().then(() => pullImap(true));
+  stopImapLive();
+  imapTimer = setInterval(() => pullImap(false), 12000);
+}
+async function loadImapBoxes() {
+  const r = await api('/api/imap-boxes');
+  const d = await r.json();
+  imapBoxes = d.boxes || [];
+  const sel = $('imapBox');
+  const keep = sel.value || localStorage.getItem('wxcked_imap') || '';
+  sel.innerHTML = imapBoxes.length
+    ? imapBoxes.map(b => `<option value="${esc(b.id)}">${esc(b.name)} · ${esc(b.user)}</option>`).join('')
+    : '<option value="">Add IMAP first</option>';
+  if (keep && imapBoxes.some(b => b.id === keep)) sel.value = keep;
+  else if (imapBoxes[0]) sel.value = imapBoxes[0].id;
+  localStorage.setItem('wxcked_imap', sel.value || '');
+  $('imapHint').textContent = imapBoxes.length
+    ? (imapHideOld ? 'Current inbox is hidden. Only mail that arrives now will show.' : 'Showing everything. Hide old to swallow this pile and watch new mail only.')
+    : 'Add host, user, and password. Hostinger is imap.hostinger.com · 993.';
+  $('imapDelBtn').style.display = imapBoxes.length ? '' : 'none';
+}
+function openImapModal() {
+  $('imapModal').style.display = 'grid';
+  $('imapForm').reset();
+  $('imapId').value = '';
+  $('imapPort').value = '993';
+  $('imapSecure').checked = true;
+  $('imapHost').value = 'imap.hostinger.com';
+}
+function closeImapModal() { $('imapModal').style.display = 'none'; }
+async function deleteImap() {
+  const id = $('imapBox').value;
+  if (!id || !confirm('Remove this IMAP mailbox?')) return;
+  await api('/api/imap-configs/' + id, { method: 'DELETE' });
+  imapStamp = '';
+  imapUid = '';
+  await loadImapBoxes();
+  pullImap(true);
+}
+async function pullImap(force) {
+  const id = $('imapBox').value;
+  if (!id) {
+    $('imapList').innerHTML = '<div class="empty" style="padding:16px">No mailbox yet.</div>';
+    return;
+  }
+  if (imapBusy && !force) return;
+  imapBusy = true;
+  $('imapLive').classList.add('on');
+  $('imapLiveText').textContent = 'Live';
+  try {
+    const since = imapHideOld && !imapPendingSweep ? imapSince() : 0;
+    const r = await api('/api/imap-fetch', {
+      method: 'POST',
+      body: { boxId: id, unseenOnly: false, fetchCount: imapCount, sinceUid: since }
+    });
+    const d = await r.json();
+    if (!d.success) {
+      $('imapLiveText').textContent = d.message || 'IMAP failed';
+      if (force) $('imapList').innerHTML = `<div class="empty" style="padding:16px">${esc(d.message || 'Could not connect')}</div>`;
+      return;
+    }
+    if (imapHideOld && d.uidvalidity) imapCheckValidity(d.uidvalidity);
+    const next = parseInt(d.uidnext, 10) || 0;
+    if (imapHideOld && next && (imapPendingSweep || !imapSince())) {
+      imapSetSince(next);
+      imapPendingSweep = false;
+    }
+    const cut = imapHideOld ? imapSince() : 0;
+    const stamp = (d.uidnext || 0) + ':' + (d.emails || []).map(e => e.uid).join(',') + ':' + cut;
+    if (!force && stamp === imapStamp) return;
+    imapStamp = stamp;
+    imapMails = (d.emails || []).filter(m => !cut || Number(m.uid) >= cut);
+    imapTotal = d.total || imapMails.length;
+    imapUnseenN = d.unseen || 0;
+    const shown = imapVisible().length;
+    $('imapLiveText').textContent = imapHideOld
+      ? (shown + ' new · Live')
+      : ((d.unseen ? d.unseen + ' unread · ' : '') + imapMails.length + (imapTotal ? '/' + imapTotal : '') + ' · Live');
+    paintImapList();
+  } catch (err) {
+    $('imapLiveText').textContent = err.message || 'IMAP failed';
+  } finally {
+    imapBusy = false;
+  }
+}
+function imapBoxId() {
+  return $('imapBox').value || localStorage.getItem('wxcked_imap') || '';
+}
+function imapSinceKey() {
+  return 'wxcked_imap_since_' + imapBoxId();
+}
+function imapUvKey() {
+  return 'wxcked_imap_uv_' + imapBoxId();
+}
+function imapSince() {
+  return parseInt(localStorage.getItem(imapSinceKey()) || '0', 10) || 0;
+}
+function imapSetSince(n) {
+  const v = parseInt(n, 10) || 0;
+  if (v > 0) localStorage.setItem(imapSinceKey(), String(v));
+}
+function imapCheckValidity(uv) {
+  const now = String(uv || '');
+  if (!now) return;
+  const prev = localStorage.getItem(imapUvKey()) || '';
+  if (prev && prev !== now) {
+    localStorage.removeItem(imapSinceKey());
+    imapPendingSweep = true;
+  }
+  localStorage.setItem(imapUvKey(), now);
+}
+function imapOpenedKey() {
+  return 'wxcked_imap_opened_' + imapBoxId();
+}
+function imapOpenedSet() {
+  try { return new Set(JSON.parse(localStorage.getItem(imapOpenedKey()) || '[]').map(String)); }
+  catch (e) { return new Set(); }
+}
+function imapMarkOpened(id) {
+  if (!id) return;
+  const s = imapOpenedSet();
+  s.add(String(id));
+  localStorage.setItem(imapOpenedKey(), JSON.stringify([...s].slice(-800)));
+}
+function imapIsNew(m) {
+  if (!m) return false;
+  const uid = Number(m.uid) || 0;
+  const cut = imapSince();
+  if (cut && uid && uid < cut) return false;
+  const opened = imapOpenedSet();
+  if (uid && opened.has(String(uid))) return false;
+  if (m.seqno && opened.has(String(m.seqno))) return false;
+  return true;
+}
+function imapVisible() {
+  return imapHideOld ? imapMails.filter(imapIsNew) : imapMails;
+}
+function paintImapList() {
+  const rows = imapVisible();
+  if (!rows.length) {
+    $('imapList').innerHTML = `<div class="empty" style="padding:16px">${imapHideOld ? 'No new mail. Show all to see the old pile.' : 'Inbox is empty.'}</div>`;
+  } else {
+    $('imapList').innerHTML = rows.map(m => {
+      const when = m.date ? new Date(m.date).toLocaleString() : '';
+      const isNew = imapIsNew(m);
+      const fresh = isNew ? '<span class="mail-new">NEW</span>' : '';
+      return `<button type="button" class="mail-row ${String(m.uid || m.seqno) === imapUid ? 'on' : ''} ${isNew ? 'unseen' : 'old'}" data-uid="${esc(m.uid || '')}" data-seq="${esc(m.seqno || '')}">
+        <b>${fresh}${esc(m.subject)}</b><span>${esc(m.from)}</span><em>${esc(when)}</em></button>`;
+    }).join('');
+    $('imapList').querySelectorAll('.mail-row').forEach(b => b.onclick = () => openImapMail(b.dataset.uid, b.dataset.seq));
+  }
+  const haveMore = imapHideOld ? false : imapTotal > imapMails.length;
+  if (haveMore) {
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'ghost';
+    more.style.cssText = 'margin:10px;width:calc(100% - 20px)';
+    more.textContent = 'Load more';
+    more.onclick = () => { imapCount += 20; pullImap(true); };
+    $('imapList').appendChild(more);
+  }
+}
+function setImapMode(mode) {
+  imapHideOld = mode !== 'all';
+  localStorage.setItem('wxcked_imap_mode', imapHideOld ? 'new' : 'all');
+  $('imapToggle').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mode === (imapHideOld ? 'new' : 'all')));
+  if ($('imapHint') && imapBoxes.length) {
+    $('imapHint').textContent = imapHideOld
+      ? 'Current inbox is hidden. Only mail that arrives now will show.'
+      : 'Showing everything. Hide old to swallow this pile and watch new mail only.';
+  }
+  imapStamp = '';
+  imapCount = 20;
+  if (imapHideOld) imapPendingSweep = true;
+  pullImap(true);
+}
+window.setImapMode = setImapMode;
+function wrapMailHtml(html, text) {
+  const raw = String(html || '').trim();
+  const body = raw || '<pre style="white-space:pre-wrap;font:14px/1.55 Outfit,Arial,sans-serif;margin:0;color:#1a1a1a">' + esc(text || 'Empty message') + '</pre>';
+  const skin = '<style>html,body{margin:0;background:#efece4;color:#1a1a1a;} body{padding:22px 24px;} img{max-width:100%;height:auto;} a{color:#6d4aff;} table{max-width:100%;}</style>';
+  if (/<html/i.test(body)) {
+    let out = body;
+    if (!/<meta[^>]*charset/i.test(out)) out = out.replace(/<head([^>]*)>/i, '<head$1><meta charset="utf-8">') || out;
+    if (/<\/head>/i.test(out)) out = out.replace(/<\/head>/i, skin + '</head>');
+    else out = skin + out;
+    return out;
+  }
+  return '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' + skin + '</head><body>' + body + '</body></html>';
+}
+function paintImapFrom(from) {
+  const s = String(from || '');
+  const m = s.match(/^(.*?)\s*<([^>]+)>\s*$/);
+  const name = (m ? m[1] : s).replace(/["']/g, '').trim() || (m ? m[2] : 'Unknown');
+  const email = m ? m[2] : '';
+  $('imapFrom').innerHTML = esc(name) + (email ? '<small>' + esc(email) + '</small>' : '');
+}
+async function openImapMail(uid, seqno) {
+  imapUid = String(uid || seqno || '');
+  let m = imapMails.find(x => String(x.uid) === String(uid) || String(x.seqno) === String(seqno));
+  paintImapList();
+  if (!m) return;
+  $('imapEmpty').style.display = 'none';
+  $('imapBody').classList.add('on');
+  $('imapSub').textContent = m.subject || '(No Subject)';
+  paintImapFrom(m.from);
+  $('imapMeta').textContent = m.date ? new Date(m.date).toLocaleString() : '';
+  const load = $('imapLoading');
+  if (!m.html && !m.text) {
+    load.classList.add('on');
+    $('imapFrame').srcdoc = '';
+    const r = await api('/api/imap-read', {
+      method: 'POST',
+      body: { boxId: $('imapBox').value, uid: m.uid, seqno: m.seqno }
+    });
+    const d = await r.json();
+    if (!d.success || !d.email) {
+      load.classList.remove('on');
+      $('imapFrame').srcdoc = wrapMailHtml('', d.message || 'Could not open message');
+      return;
+    }
+    Object.assign(m, d.email);
+    $('imapSub').textContent = m.subject || '(No Subject)';
+    paintImapFrom(m.from);
+  }
+  $('imapFrame').srcdoc = wrapMailHtml(m.html, m.text);
+  load.classList.remove('on');
+  imapMarkOpened(m.uid || m.seqno);
+  if (imapHideOld) paintImapList();
+}
+window.openImapModal = openImapModal;
+window.closeImapModal = closeImapModal;
+window.deleteImap = deleteImap;
+$('imapBox').addEventListener('change', () => {
+  localStorage.setItem('wxcked_imap', $('imapBox').value);
+  imapStamp = '';
+  imapUid = '';
+  imapCount = 20;
+  pullImap(true);
+});
+$('imapToggle').querySelectorAll('button').forEach(b => {
+  b.onclick = () => setImapMode(b.dataset.mode);
+});
+$('imapForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const r = await api('/api/imap-configs', { method: 'POST', body: {
+    id: $('imapId').value || undefined,
+    name: $('imapName').value,
+    host: $('imapHost').value,
+    port: parseInt($('imapPort').value) || 993,
+    secure: $('imapSecure').checked,
+    user: $('imapUser').value,
+    pass: $('imapPass').value
+  }});
+  const d = await r.json();
+  if (!d.success) { toast(d.message || 'Could not save IMAP'); return; }
+  closeImapModal();
+  await loadImapBoxes();
+  if (d.config && d.config.id) {
+    $('imapBox').value = d.config.id;
+    localStorage.setItem('wxcked_imap', d.config.id);
+  }
+  imapStamp = '';
+  pullImap(true);
+  toast('IMAP saved');
+});
 
 // Google Noreply quick send
 function loadGoogleSendSmtp() {
@@ -1843,6 +2380,32 @@ setInterval(tickClock, 30000);
 
 (function bootDeck() {
   const tracks = [
+    { title: 'All Life Long', artist: 'Juice WRLD, Kid Cudi', src: '/assets/music/juice/all-life-long-ft-kid-cudi.mp3' },
+    { title: 'Already Dead', artist: 'Juice WRLD', src: '/assets/music/juice/already-dead.mp3' },
+    { title: 'Burn', artist: 'Juice WRLD', src: '/assets/music/juice/burn.mp3' },
+    { title: 'Bye Bye', artist: 'Marshmello, Juice WRLD', src: '/assets/music/juice/marshmello-and-juice-wrld-bye-bye.mp3' },
+    { title: 'Cursed', artist: 'Juice WRLD', src: '/assets/music/juice/cursed.mp3' },
+    { title: 'Disguise', artist: 'Juice WRLD', src: '/assets/music/juice/disguise.mp3' },
+    { title: 'Doom', artist: 'Juice WRLD', src: '/assets/music/juice/doom.mp3' },
+    { title: 'Empty Out Your Pockets', artist: 'Juice WRLD', src: '/assets/music/juice/empty-out-your-pockets.mp3' },
+    { title: 'Feel Alone', artist: 'Juice WRLD', src: '/assets/music/juice/feel-alone.mp3' },
+    { title: 'From My Window', artist: 'Juice WRLD', src: '/assets/music/juice/from-my-window.mp3' },
+    { title: "I'm Lost", artist: 'Juice WRLD', src: '/assets/music/juice/im-lost.mp3' },
+    { title: 'Girl Of My Dreams', artist: 'Juice WRLD, SUGA', src: '/assets/music/juice/suga-bts-girl-of-my-dreams.mp3' },
+    { title: 'Knight Crawler', artist: 'Trippie Redd', src: '/assets/music/juice/trippie-redd-knight-crawler.mp3' },
+    { title: 'Misfit', artist: 'Juice WRLD', src: '/assets/music/juice/misfit.mp3' },
+    { title: 'Money On The Way', artist: 'Juice WRLD', src: '/assets/music/juice/money-on-the-way-1.mp3' },
+    { title: 'My Life In A Nutshell', artist: 'Juice WRLD', src: '/assets/music/juice/my-life-in-a-nutshell.mp3' },
+    { title: 'Novocaine', artist: 'Juice WRLD', src: '/assets/music/juice/novocaine.mp3' },
+    { title: 'Rental', artist: 'Juice WRLD', src: '/assets/music/juice/rental.mp3' },
+    { title: 'Rockstar In His Prime', artist: 'Juice WRLD', src: '/assets/music/juice/rockstar-in-his-prime.mp3' },
+    { title: 'Running Away', artist: 'Juice WRLD', src: '/assets/music/juice/running-away.mp3' },
+    { title: 'Social Suicide', artist: 'Juice WRLD', src: '/assets/music/juice/social-suicide.mp3' },
+    { title: 'The Party Never Ends', artist: 'Juice WRLD', src: '/assets/music/juice/the-party-never-ends.mp3' },
+    { title: 'Truth No Dare', artist: 'Juice WRLD', src: '/assets/music/juice/truth-no-dare.mp3' },
+    { title: 'Until The Plug Comes Back Around', artist: 'Juice WRLD', src: '/assets/music/juice/until-the-plug-comes-back-around.mp3' },
+    { title: 'Wandered To LA', artist: 'Juice WRLD, Justin Bieber', src: '/assets/music/juice/justin-bieber-wandered-to-la.mp3' },
+    { title: 'You Keep Leaving', artist: 'Juice WRLD', src: '/assets/music/juice/you-keep-leaving.mp3' },
     { title: 'Night Run', artist: 'Wxcked FM', src: '/assets/music/night-run.mp3' },
     { title: 'Static Velvet', artist: 'Wxcked FM', src: '/assets/music/static-velvet.mp3' },
     { title: 'Void Walk', artist: 'Wxcked FM', src: '/assets/music/void-walk.mp3' }
@@ -1851,7 +2414,8 @@ setInterval(tickClock, 30000);
   const eq = $('deckEq');
   const seek = $('deckSeek');
   let i = Number(localStorage.getItem('wxcked_track') || 0);
-  let ctx, analyser, freq, raf, seeking = false;
+  if (!Number.isFinite(i) || i < 0 || i >= tracks.length) i = 0;
+  let ctx, analyser, freq, raf, seeking = false, skips = 0, gen = 0, waiting = null;
   eq.innerHTML = Array.from({ length: 18 }, () => '<i></i>').join('');
   const bars = [...eq.querySelectorAll('i')];
 
@@ -1861,6 +2425,12 @@ setInterval(tickClock, 30000);
     const n = Math.floor(s % 60);
     return m + ':' + String(n).padStart(2, '0');
   }
+  function paintMeta() {
+    const t = tracks[i];
+    $('deckTitle').textContent = t.title;
+    $('deckArtist').textContent = t.artist;
+    paintList();
+  }
   function paintList() {
     $('deckList').innerHTML = tracks.map((t, n) =>
       `<button type="button" class="${n === i ? 'on' : ''}" data-i="${n}"><span><b>${t.title}</b></span><small>${t.artist}</small></button>`
@@ -1868,14 +2438,32 @@ setInterval(tickClock, 30000);
     $('deckList').querySelectorAll('button').forEach(b => b.onclick = () => load(Number(b.dataset.i), true));
   }
   function load(n, play) {
+    const token = ++gen;
+    if (waiting) {
+      audio.removeEventListener('canplay', waiting);
+      waiting = null;
+    }
     i = (n + tracks.length) % tracks.length;
     localStorage.setItem('wxcked_track', String(i));
-    const t = tracks[i];
-    $('deckTitle').textContent = t.title;
-    $('deckArtist').textContent = t.artist;
-    audio.src = t.src;
-    paintList();
-    if (play) audio.play().catch(() => {});
+    paintMeta();
+    if (!play) return;
+    skips = 0;
+    $('deckArtist').textContent = 'Buffering…';
+    try { audio.pause(); } catch (e) {}
+    audio.preload = 'auto';
+    const src = tracks[i].src;
+    audio.src = src.startsWith('blob:') ? src : src;
+    audio.load();
+    waiting = () => {
+      if (token !== gen) return;
+      waiting = null;
+      audio.play().catch(err => {
+        if (token !== gen) return;
+        if (err && err.name === 'AbortError') return;
+      });
+    };
+    if (audio.readyState >= 2) waiting();
+    else audio.addEventListener('canplay', waiting, { once: true });
   }
   function graph() {
     if (ctx) return;
@@ -1883,13 +2471,14 @@ setInterval(tickClock, 30000);
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       const src = ctx.createMediaElementSource(audio);
       analyser = ctx.createAnalyser();
-      analyser.fftSize = 64;
+      analyser.fftSize = 32;
       freq = new Uint8Array(analyser.frequencyBinCount);
       src.connect(analyser);
       analyser.connect(ctx.destination);
     } catch (e) { ctx = { state: 'running', resume: async () => {} }; }
   }
   function viz() {
+    if (audio.paused) { raf = 0; return; }
     raf = requestAnimationFrame(viz);
     if (analyser) {
       analyser.getByteFrequencyData(freq);
@@ -1897,11 +2486,6 @@ setInterval(tickClock, 30000);
       bars.forEach((el, n) => {
         const v = freq[n * step] || 0;
         el.style.height = Math.max(14, (v / 255) * 100) + '%';
-      });
-    } else if (!audio.paused) {
-      const t = audio.currentTime;
-      bars.forEach((el, n) => {
-        el.style.height = (18 + Math.abs(Math.sin(t * (1.7 + n * 0.31))) * 78) + '%';
       });
     }
   }
@@ -1912,11 +2496,11 @@ setInterval(tickClock, 30000);
       : '<path d="M8 5v14l11-7z"/>';
   }
   $('deckPlay').onclick = async () => {
-    graph();
-    if (ctx.state === 'suspended') await ctx.resume();
-    if (!audio.src) load(i, true);
-    else if (audio.paused) audio.play().catch(() => {});
-    else audio.pause();
+    if (!audio.currentSrc) { load(i, true); return; }
+    if (audio.paused) {
+      if (ctx && ctx.state === 'suspended') await ctx.resume();
+      audio.play().catch(() => {});
+    } else audio.pause();
   };
   $('deckPrev').onclick = () => load(i - 1, true);
   $('deckNext').onclick = () => load(i + 1, true);
@@ -1934,9 +2518,20 @@ setInterval(tickClock, 30000);
     seeking = false;
   };
   audio.addEventListener('play', () => { setPlaying(true); if (!raf) viz(); });
-  audio.addEventListener('pause', () => setPlaying(false));
+  audio.addEventListener('playing', () => {
+    skips = 0;
+    $('deckArtist').textContent = tracks[i].artist;
+    graph();
+    if (ctx && ctx.resume) ctx.resume().catch(() => {});
+  });
+  audio.addEventListener('pause', () => { setPlaying(false); if (raf) { cancelAnimationFrame(raf); raf = 0; } });
   audio.addEventListener('ended', () => load(i + 1, true));
-  audio.addEventListener('error', () => { if (tracks.length > 1) load(i + 1, !audio.paused); });
+  audio.addEventListener('error', () => {
+    const code = audio.error && audio.error.code;
+    if (code === 1) return;
+    $('deckArtist').textContent = 'Couldn’t load';
+    if (skips++ < 8) load(i + 1, true);
+  });
   audio.addEventListener('timeupdate', () => {
     $('deckCur').textContent = fmt(audio.currentTime);
     $('deckDur').textContent = fmt(audio.duration);
@@ -1951,7 +2546,7 @@ setInterval(tickClock, 30000);
     e.target.value = '';
   };
   window.deckStop = () => { audio.pause(); setPlaying(false); };
-  load(i, false);
+  paintMeta();
 })();
 
 checkAuth();

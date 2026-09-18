@@ -14,3 +14,6 @@ data/proxies.json
 data/templates.json
 data/brand-templates.json
 data/team.json
+data/sessions.json
+data/telegram-feed.json
+public/assets/music/juice/

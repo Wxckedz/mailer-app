@@ -1,13 +1,25 @@
 # Nginx reverse proxy for wxcked.wtf
 # On VPS: copy to /etc/nginx/conf.d/wxcked.conf
 #         nginx -t && systemctl reload nginx
-#         certbot --nginx -d wxcked.wtf -d www.wxcked.wtf
+#         certbot --nginx -d wxcked.wtf
 
 server {
     listen 80;
     listen [::]:80;
     server_name wxcked.wtf www.wxcked.wtf;
     client_max_body_size 10m;
+
+    location /assets/ {
+        root /opt/mailer-app/public;
+        sendfile on;
+        tcp_nopush on;
+        tcp_nodelay on;
+        gzip off;
+        open_file_cache max=200 inactive=2m;
+        expires 7d;
+        add_header Cache-Control "public";
+        add_header Accept-Ranges bytes;
+    }
 
     location / {
         proxy_pass http://127.0.0.1:3000;

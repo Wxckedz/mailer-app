@@ -147,6 +147,34 @@ const BUILTIN_CATALOG = [
       FOOTER: 'You received this email to follow up on a recent call with our representative.',
     },
   },
+  {
+    id: 'fca',
+    file: 'fca.html',
+    name: 'FCA representative',
+    service: 'FCA',
+    category: 'financial',
+    description: 'Assigned representative verification',
+    subject: 'Verify Your FCA Representative',
+    fromName: 'Financial Conduct Authority',
+    fromEmail: 'noreply@fca',
+    company: 'FCA',
+    lockSubject: true,
+    needsImage: true,
+    cids: [{ cid: 'fcalogo', file: 'fca.png' }],
+    fields: [
+      { key: 'DATE', label: 'Date', placeholder: '18 September 2026' },
+      { key: 'RECIPIENT_NAME', label: 'Recipient name', placeholder: 'Mark Dawn' },
+      { key: 'RECIPIENT_EMAIL', label: 'Recipient email', placeholder: 'target@email.com' },
+      { key: 'REPRESENTATIVE_NAME', label: 'Representative', placeholder: 'Stefan Gallo' },
+      { key: 'REFERENCE_NUMBER', label: 'Reference', placeholder: 'DTA5786/309' },
+    ],
+    examples: {
+      RECIPIENT_NAME: 'Mark Dawn',
+      RECIPIENT_EMAIL: 'target@email.com',
+      REPRESENTATIVE_NAME: 'Stefan Gallo',
+      REFERENCE_NUMBER: 'DTA5786/309',
+    },
+  },
 ];
 
 async function loadTemplateHtml(file) {
