@@ -67,6 +67,19 @@
       --hover: rgba(109,74,255,.08);
       --active: rgba(109,74,255,.16);
     }
+    html[data-theme="gold"] {
+      --bg: #0c0a06;
+      --purple: #d4a534;
+      --glow: rgba(212,165,52,.28);
+      --dock: rgba(28,24,14,.78);
+      --card: #161208;
+      --card2: #1c1610;
+      --line: #3a3018;
+      --rail: #12100a;
+      --win: rgba(18,16,10,.86);
+      --hover: rgba(212,165,52,.12);
+      --active: rgba(212,165,52,.22);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
     body {
@@ -635,6 +648,7 @@
     .theme.night { background: linear-gradient(90deg, #111, #2a2a32); }
     .theme.crimson { background: linear-gradient(90deg, #3a1018, #e05a6a); }
     .theme.shadow { background: linear-gradient(90deg, #120c22, #a78bfa); }
+    .theme.gold { background: linear-gradient(90deg, #1a1408, #d4a534); }
     .theme.day { background: linear-gradient(90deg, #fff, #6d4aff); }
     .spine-mark {
       width: 26px; height: 26px; margin: 2px 0 8px;
@@ -1010,6 +1024,7 @@
               <button type="button" class="theme night" title="Night" onclick="setTheme('night')"></button>
               <button type="button" class="theme crimson" title="Crimson" onclick="setTheme('crimson')"></button>
               <button type="button" class="theme shadow" title="Shadow" onclick="setTheme('shadow')"></button>
+              <button type="button" class="theme gold" title="Gold" onclick="setTheme('gold')"></button>
               <button type="button" class="theme day" title="Day" onclick="setTheme('day')"></button>
             </div>
             <h3>Defaults</h3>
