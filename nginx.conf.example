@@ -1,13 +1,20 @@
 # Nginx reverse proxy for wxcked.wtf
-# On VPS: copy to /etc/nginx/conf.d/wxcked.conf
-#         nginx -t && systemctl reload nginx
-#         certbot --nginx -d wxcked.wtf
+# Cloudflare orange-cloud: SSL/TLS mode Full (Strict)
+# Origin cert: /etc/ssl/cloudflare/wxcked.crt + wxcked.key
+# Hosts: wxcked.wtf, www.wxcked.wtf, *.wxcked.wtf
 
 server {
-    listen 80;
-    listen [::]:80;
+    listen 443 ssl;
+    listen [::]:443 ssl;
     server_name wxcked.wtf www.wxcked.wtf;
     client_max_body_size 10m;
+
+    ssl_certificate     /etc/ssl/cloudflare/wxcked.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/wxcked.key;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header Content-Security-Policy "upgrade-insecure-requests" always;
 
     location /assets/ {
         root /opt/mailer-app/public;
@@ -32,4 +39,11 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout 120s;
     }
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name wxcked.wtf www.wxcked.wtf;
+    return 301 https://$host$request_uri;
 }
